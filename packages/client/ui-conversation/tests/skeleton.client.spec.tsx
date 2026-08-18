@@ -99,6 +99,8 @@ function mount(
     composerBlock?: { reason: string }
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
+    /** Replace the default hero-brand fixture with an owner-currency probe. */
+    heroBrandProbe?: boolean
   } = {},
 ) {
   const root = sid('root')
@@ -138,10 +140,17 @@ function mount(
   /** Owner share handed to the two composer tool-row seats, per render. */
   const seatOwners: { key: string; owner: unknown }[] = []
   let pickerOwner: unknown
+  let heroBrandOwner: unknown
   const renderSlot = ((key: string, owner: object, opts?: { only?: string }) => {
     slotCalls.push(key)
     if (key === 'conversation.input.model' || key === 'conversation.input.plan') {
       seatOwners.push({ key, owner })
+    }
+    if (key === 'conversation.hero.brand') {
+      heroBrandOwner = owner
+      return options.heroBrandProbe === true
+        ? <div data-testid="hero-brand-probe">Custom headline</div>
+        : <><span>探索未至之境</span><span>预览版</span></>
     }
     if (key === 'conversation.hero.workspace') { pickerOwner = owner; return null }
     if (key === 'conversation.session.header') {
@@ -253,6 +262,7 @@ function mount(
   return {
     view, chat, sink, retargetWorkspace, session, slotCalls, seatOwners, open,
     pickerOwner: () => pickerOwner,
+    heroBrandOwner: () => heroBrandOwner,
     rerender: () => { view.rerender(<ConversationRoot {...props} />) },
   }
 }
@@ -380,6 +390,18 @@ describe('ConversationRoot resident composer', () => {
     act(() => { owner.onPick(wid('second')) })
     expect(b.retargetWorkspace).toHaveBeenCalledWith(wid('second'))
     expect(b.view.getByText('Selected Folder')).toBeTruthy()
+  })
+
+  it('renders the hero brand slot with the marker-empty owner currency', () => {
+    const b = mount(
+      conversationSnapshot({ composerPhase: 'blank', blank: true }),
+      undefined,
+      undefined,
+      { heroBrandProbe: true },
+    )
+    expect(b.view.getByTestId('hero-brand-probe').textContent).toBe('Custom headline')
+    expect(b.heroBrandOwner()).toEqual({})
+    expect(b.view.queryByText('探索未至之境')).toBeNull()
   })
 
   it('settling phase: a summary that does not prove the session blank hides the composer while it opens', () => {

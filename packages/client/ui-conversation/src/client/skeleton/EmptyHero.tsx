@@ -102,8 +102,28 @@ export function HeroGlow({ className }: { className?: string | undefined }) {
 export interface HeroShellProps {
   /** The owner's locale seat, passed down as a plain prop. */
   t: HeroTranslate
+  /** Brand slot output. Omission retains the component-level default for direct consumers. */
+  brand?: ReactNode
   /** Overlay content after the stack (modals). */
   children?: ReactNode
+}
+
+/**
+ * Render the product's default hero identity.
+ * @param props - locale seat supplied by the default slot registration.
+ * @returns the fish mark, localized slogan, and preview badge.
+ */
+export function DefaultHeroBrand({ t }: { t: HeroTranslate }) {
+  return (
+    <>
+      {/* figma 34:10412: fish 34x25 leading the headline, gap 10. */}
+      <span className={css.fishHitbox}>
+        <FishLogo size={34} className={css.fish} />
+      </span>
+      <span className={css.headlineText}>{t('hero.headline')}</span>
+      <span className={css.previewBadge}>{t('hero.preview')}</span>
+    </>
+  )
 }
 
 /**
@@ -112,17 +132,12 @@ export interface HeroShellProps {
  * @param props - see {@link HeroShellProps}.
  * @returns the centered hero element tree.
  */
-export function HeroShell({ t, children }: HeroShellProps) {
+export function HeroShell({ t, brand, children }: HeroShellProps) {
   return (
     <div className={css.root}>
       <div className={css.stack}>
         <div className={css.headline}>
-          {/* figma 34:10412: fish 34×25 leading the headline, gap 10. */}
-          <span className={css.fishHitbox}>
-            <FishLogo size={34} className={css.fish} />
-          </span>
-          <span className={css.headlineText}>{t('hero.headline')}</span>
-          <span className={css.previewBadge}>{t('hero.preview')}</span>
+          {brand === undefined ? <DefaultHeroBrand t={t} /> : brand}
         </div>
         <div className={css.body}>
           {/* The resident composer (ConversationRoot's root-owned scrollport;

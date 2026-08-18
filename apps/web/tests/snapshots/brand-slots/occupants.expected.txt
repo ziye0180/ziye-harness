@@ -1,0 +1,7 @@
+sidebar=sidebar-wordmark|Fixture Wordmark
+sidebarHost=New session
+hero=hero|Fixture Hero
+heroPhase=hero
+defaultHero=absent
+collapsed=sidebar-mark|F
+collapsedHost=Open sidebar

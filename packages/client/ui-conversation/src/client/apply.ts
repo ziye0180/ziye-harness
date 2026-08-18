@@ -33,6 +33,7 @@ import { ApprovalPanel } from './skeleton/ApprovalPanel.tsx'
 import { todoDockEntry } from './skeleton/TodoPanel.tsx'
 import { queueDockEntry } from './queue/QueueDock.tsx'
 import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
+import { DefaultHeroBrand } from './skeleton/EmptyHero.tsx'
 import { ConversationSession, ConversationSessionHeader } from './skeleton/ConversationSession.tsx'
 import { DetailsPanel } from './skeleton/DetailsPanel.tsx'
 import { en, NS, zh, type ConversationKey } from './locales.ts'
@@ -206,6 +207,7 @@ export function apply(ctx: Context): void {
       'conversation.composer.dock': { kind: 'list', scope: 'session' },
       'conversation.input.left': { kind: 'list', scope: 'session' },
       'conversation.input.right': { kind: 'list', scope: 'session' },
+      'conversation.hero.brand': { kind: 'single', scope: 'root' },
       'conversation.hero.workspace': { kind: 'single', scope: 'root' },
       'conversation.hero.agentPreset': { kind: 'single', scope: 'root' },
     },
@@ -232,6 +234,10 @@ export function apply(ctx: Context): void {
       },
     }),
   }, ConversationRoot)
+  slots.register(
+    { name: 'conversation.hero.brand', priority: 0, locale: NS },
+    DefaultHeroBrand,
+  )
 
   // The strict session body fills the resident scrollport without owning it;
   // the Hero/composer path therefore stays fixed while the first blank

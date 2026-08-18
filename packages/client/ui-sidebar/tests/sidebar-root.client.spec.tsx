@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type {
-  SidebarFooterActionOwnerProps, SidebarRootComponentProps, SidebarSectionOwnerProps,
+  SidebarBrandOwnerProps, SidebarFooterActionOwnerProps, SidebarRootComponentProps, SidebarSectionOwnerProps,
   SidebarSettingsOwnerProps,
 } from '../src/client/contract/slots.ts'
 import { SidebarRoot } from '../src/client/SidebarRoot.tsx'
@@ -35,18 +35,25 @@ function mountShell({ collapsed = false, width = 300 }: { collapsed?: boolean; w
       startSession={startSession} toggleSidebar={toggleSidebar} t={t}
       renderSlot={((
         key: string,
-        owner: SidebarFooterActionOwnerProps | SidebarSectionOwnerProps | SidebarSettingsOwnerProps,
+        owner: object,
       ) => {
+        if (key === 'sidebar.brand') {
+          const brandOwner = owner as SidebarBrandOwnerProps
+          return <div data-testid="brand-seat" data-variant={brandOwner.variant} />
+        }
         if (key === 'sidebar.settings') {
-          settingsOwner = owner
-          return <div data-testid="settings-seat" data-wide={owner.wide} />
+          const settings = owner as SidebarSettingsOwnerProps
+          settingsOwner = settings
+          return <div data-testid="settings-seat" data-wide={settings.wide} />
         }
         if (key === 'sidebar.footer.action') {
-          footerActionOwner = owner
-          return <div data-testid="footer-action-seat" data-wide={owner.wide} />
+          const footerAction = owner as SidebarFooterActionOwnerProps
+          footerActionOwner = footerAction
+          return <div data-testid="footer-action-seat" data-wide={footerAction.wide} />
         }
-        regionOwner = owner as SidebarSectionOwnerProps
-        return <div data-testid="region" data-wide={owner.wide} />
+        const region = owner as SidebarSectionOwnerProps
+        regionOwner = region
+        return <div data-testid="region" data-wide={region.wide} />
       }) as SidebarRootComponentProps['renderSlot']}
     />
   )

@@ -38,6 +38,10 @@ async function bench(options: { locale?: 'en' } = {}) {
   return { runtime, locale }
 }
 
+function CustomBrand({ variant }: { variant: 'wordmark' | 'mark' }) {
+  return <span data-testid="custom-sidebar-brand">custom-{variant}</span>
+}
+
 describe('sidebar shell snapshots', () => {
   it('renders the expanded column in the default locale (zh, no setLocale)', async () => {
     const { runtime } = await bench()
@@ -81,6 +85,33 @@ describe('sidebar shell snapshots', () => {
     act(() => { locale.setLocale('en') })
     expect(slot.view.getAllByRole('button', { name: 'New session' })).toHaveLength(2)
     expect(slot.view.queryByRole('button', { name: '新建会话' })).toBeNull()
+    await runtime.dispose()
+  })
+
+  it('lets a lower-priority brand replace both owner variants and restores the default on dispose', async () => {
+    const { runtime } = await bench({ locale: 'en' })
+    const slot = runtime.renderSlot('sidebar', { collapsed: false, width: 300 })
+    expect(slot.view.queryByTestId('custom-sidebar-brand')).toBeNull()
+
+    const disposeCustom = runtime.slots.register(
+      { name: 'sidebar.brand', priority: -100 },
+      CustomBrand,
+    )
+    await runtime.flush()
+    expect(slot.view.getByTestId('custom-sidebar-brand').textContent).toBe('custom-wordmark')
+
+    slot.update({ collapsed: true, width: 56 })
+    await waitFor(() => {
+      expect(slot.view.getByTestId('custom-sidebar-brand').textContent).toBe('custom-mark')
+    })
+
+    disposeCustom()
+    await runtime.flush()
+    expect(slot.view.queryByTestId('custom-sidebar-brand')).toBeNull()
+    expect(slot.container.querySelector('[data-slot="sidebar.brand"] > svg[aria-hidden="true"]'))
+      .not.toBeNull()
+    expect(runtime.slots.entries('sidebar.brand').map(entry => entry.options.priority ?? 0))
+      .toEqual([0])
     await runtime.dispose()
   })
 })

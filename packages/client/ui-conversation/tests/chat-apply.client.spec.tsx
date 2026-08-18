@@ -89,10 +89,14 @@ describe('apply wiring', () => {
     expect(details?.store).toBe(conversationSession?.store)
     expect(chatView?.store).toBe(conversationSession?.store)
     // The hero holes ride the conversation entry's children declaration (the
-    // empty-state occupant is gone). Both are root-scoped: the new-session
+    // empty-state occupant is gone). These are root-scoped: the new-session
     // screen precedes the session either would belong to.
+    expect(b.slots.spec('conversation.hero.brand')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('conversation.hero.workspace')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('conversation.hero.agentPreset')).toEqual({ kind: 'single', scope: 'root' })
+    const heroBrandEntries = b.slots.entries('conversation.hero.brand')
+    expect(heroBrandEntries).toHaveLength(1)
+    expect(heroBrandEntries[0]?.options.priority ?? 0).toBe(0)
     expect(b.slots.entries('settings.general.item').map(entry => entry.options.id)).toEqual(['composer-enter'])
     await b.runtime.dispose()
   })
@@ -111,6 +115,7 @@ describe('apply wiring', () => {
 
   it('plugin fiber disposal collects every registration (unload cascade, ring and hole included)', async () => {
     const b = await bench()
+    expect(b.slots.spec('conversation.hero.brand')).toEqual({ kind: 'single', scope: 'root' })
     await b.feature.dispose()
     expect(b.slots.entries('conversation')).toHaveLength(0)
     // The declared ring collapses with its declaring entry, and the chat
@@ -118,6 +123,8 @@ describe('apply wiring', () => {
     expect(b.slots.entries('conversation.view')).toHaveLength(0)
     expect(b.slots.entries('conversation.chat.node')).toHaveLength(0)
     expect(b.slots.spec('conversation.chat.node')).toBeUndefined()
+    expect(b.slots.entries('conversation.hero.brand')).toHaveLength(0)
+    expect(b.slots.spec('conversation.hero.brand')).toBeUndefined()
     expect(b.slots.entries('details')).toHaveLength(0)
     expect(b.slots.entries('settings.general.item')).toHaveLength(0)
     expect(b.runtime.ctx.get('conversation')).toBeUndefined()

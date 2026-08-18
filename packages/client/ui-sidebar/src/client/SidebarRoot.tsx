@@ -22,7 +22,7 @@ import {
   IconNewChatOutline16, IconPanelLeftOutline16,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SidebarRootComponentProps } from './contract/slots.ts'
+import type { SidebarBrandOwnerProps, SidebarRootComponentProps } from './contract/slots.ts'
 import css from './SidebarRoot.module.css'
 
 /** Wide-content unmount delay; matches the 150ms wide-content fade-out. */
@@ -35,6 +35,15 @@ const COLLAPSE_SETTLE_MS = 150
  * edge — on the way to the conversation, or around a portalled menu.
  */
 const SCROLLBAR_LINGER_MS = 2000
+
+/**
+ * Render the product's default sidebar identity.
+ * @param props - visual variant selected by the sidebar shell.
+ * @returns the expanded wordmark or collapsed mark.
+ */
+export function DefaultSidebarBrand({ variant }: SidebarBrandOwnerProps) {
+  return variant === 'wordmark' ? <BrandWordmark /> : <FishLogo size={24} />
+}
 
 /**
  * Render the sidebar column shell.
@@ -137,7 +146,7 @@ export function SidebarRoot({
             aria-label={t('session.new.label')}
             onClick={() => { startSession() }}
           >
-            <BrandWordmark />
+            {renderSlot('sidebar.brand', { variant: 'wordmark' })}
           </button>
         )}
         {/* Rail resting state is the whale mark; hovering swaps in the panel
@@ -149,7 +158,11 @@ export function SidebarRoot({
             aria-label={collapsed ? t('toggle.open') : t('toggle.collapse')}
             onClick={() => { toggleSidebar() }}
           >
-            {!wide && <FishLogo className={css.railFish} size={24} />}
+            {!wide && (
+              <span className={css.railFish}>
+                {renderSlot('sidebar.brand', { variant: 'mark' })}
+              </span>
+            )}
             {/* Rail icons render at 18 (figma rail spec); expanded keeps the glyph-native sizes. */}
             <IconPanelLeftOutline16 className={css.panelIcon} size={wide ? 16 : 18} />
           </button>

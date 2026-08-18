@@ -131,6 +131,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation.composer': { kind: 'chain'; scope: 'session'; owner: ComposerChainProps }
     /**
+     * Visual identity above the new-session composer. The shell owns its
+     * position while this single occupant owns the mark, slogan, and badge.
+     * The product default sits at priority 0 so a lower-priority skin can
+     * replace it and disposal restores the default.
+     */
+    'conversation.hero.brand': { kind: 'single'; scope: 'root'; owner: HeroBrandOwnerProps }
+    /**
      * The hero-phase Workspace picker hole: rendered by ConversationRoot
      * while the session is blank (picking another workspace switches to that
      * workspace's blank session, draft carried). Root scope: the picker
@@ -243,6 +250,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Owner share of the hero agent-preset chip: the shell supplies nothing. */
 export interface HeroAgentPresetOwnerProps {
   /** Marker field: the chip owns its own roster, staging, and menu state. */
+  children?: never
+}
+
+/** Owner share of the hero brand slot; the occupant owns all visual content. */
+export interface HeroBrandOwnerProps {
+  /** Marker field: the hero host supplies no business data. */
   children?: never
 }
 
@@ -573,6 +586,7 @@ export type ConversationSlotProps =
     | 'conversation.input.overlay'
     | 'conversation.input.dock' | 'conversation.composer.dock'
     | 'conversation.input.left' | 'conversation.input.right'
+    | 'conversation.hero.brand'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >
