@@ -1,7 +1,7 @@
 /**
  * Sidebar slot contract: the registrant-side props composition for the
  * layout-owned `sidebar` slot, plus the holes this shell declares. The shell
- * owns column geometry (fold state machine, brand row, New Session);
+ * owns column geometry (fold state machine, brand host, New Session);
  * everything between the section header and the list bottom is the
  * `sidebar.workspaces` registrant's (ui-workspace), and the foot is the
  * `sidebar.settings` registrant's (ui-settings), followed by optional footer
@@ -15,6 +15,14 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /**
+     * The visual identity inside the sidebar's existing buttons. The shell
+     * retains click and collapse behavior; an occupant renders either the
+     * expanded wordmark or the collapsed mark from {@link SidebarBrandOwnerProps}.
+     * The package registers the product default at priority 0, so a lower-
+     * priority skin can replace it and disposal reveals the default again.
+     */
+    'sidebar.brand': { kind: 'single'; scope: 'root'; owner: SidebarBrandOwnerProps }
     /**
      * The workspace/session browsing region: section header, search, the
      * grouped/flat session list, and every workspace dialog. Declared by this
@@ -34,6 +42,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'sidebar.footer.action': { kind: 'list'; scope: 'root'; owner: SidebarFooterActionOwnerProps }
   }
+}
+
+/** Visual variant requested by the sidebar's stable interaction host. */
+export interface SidebarBrandOwnerProps {
+  /** Expanded wordmark or collapsed 24px mark. */
+  variant: 'wordmark' | 'mark'
 }
 
 /**
@@ -85,5 +99,7 @@ export type SidebarRootInjected = {
  */
 export type SidebarRootComponentProps =
   PropsRuntime<'sidebar'>
-  & PropsRenderSlots<'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'>
+  & PropsRenderSlots<
+    'sidebar.brand' | 'sidebar.workspaces' | 'sidebar.settings' | 'sidebar.footer.action'
+  >
   & SidebarRootInjected & PropsLocale<'sidebar'>

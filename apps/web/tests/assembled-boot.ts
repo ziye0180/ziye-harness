@@ -52,6 +52,14 @@ const bundles = new Map(PLUGINS.map(plugin => [
   readFileSync(join(process.cwd(), plugin.bundlePath), 'utf8'),
 ]))
 
+/** One test-only external Client bundle appended to the assembled boot graph. */
+export interface AssembledBootPlugin {
+  /** Wire row consumed by AppWebEntry and the Client ModuleLoader. */
+  entry: WebBootEntry
+  /** Classic-script source that registers the entry through `window.__ModuleLoader__`. */
+  source: string
+}
+
 interface FixtureWindow extends Window {
   __DSH_BOOT__?: { rev: string; entries: WebBootEntry[] }
   __ModuleLoader__?: unknown
@@ -111,17 +119,25 @@ export function installAssembledBootEnv(): void {
 /**
  * Mount the assembled application on the fixture transport; the teardown
  * registered by installAssembledBootEnv disposes it.
+ * @param extraPlugins - test-only external bundles appended to the real built graph.
  */
-export function mountAssembledApp(): void {
+export function mountAssembledApp(extraPlugins: readonly AssembledBootPlugin[] = []): void {
   history.replaceState(null, '', '/?fixture')
   const root = document.createElement('div')
   root.id = 'root'
   document.body.appendChild(root)
-  win.__DSH_BOOT__ = { rev: 'fx', entries: PLUGINS.map(({ bundlePath: _bundlePath, ...plugin }) => plugin) }
+  const extraBundles = new Map(extraPlugins.map(plugin => [plugin.entry.url, plugin.source]))
+  win.__DSH_BOOT__ = {
+    rev: 'fx',
+    entries: [
+      ...PLUGINS.map(({ bundlePath: _bundlePath, ...plugin }) => plugin),
+      ...extraPlugins.map(plugin => plugin.entry),
+    ],
+  }
   act(() => {
     const entry = new AppWebEntry(root, {
       loadBundle: async (url) => {
-        const code = bundles.get(url)
+        const code = extraBundles.get(url) ?? bundles.get(url)
         if (code === undefined) throw new Error(`missing built bundle ${url}`)
         ;(0, eval)(code)
       },
