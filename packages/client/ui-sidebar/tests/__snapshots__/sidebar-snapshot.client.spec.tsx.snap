@@ -18,10 +18,11 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         type="button"
       >
         <span
-          class="railFish"
+          aria-hidden="true"
+          class="railMark"
         >
           <div
-            data-slot="sidebar.brand"
+            data-slot="sidebar.brand.mark"
             style="display: contents;"
           >
             <svg
@@ -108,19 +109,47 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         class="brand wide"
         type="button"
       >
-        <div
-          data-slot="sidebar.brand"
-          style="display: contents;"
+        <span
+          aria-hidden="true"
+          class="brandIdentity"
         >
-          <svg
-            aria-hidden="true"
-            data-content="951274b9"
-            fill="none"
-            height="24"
-            viewBox="0 0 182 24"
-            width="182"
-          />
-        </div>
+          <span
+            class="brandMark"
+          >
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="965fe321"
+                fill="none"
+                height="17.6580310880829"
+                viewBox="0 0 23.16 17.04"
+                width="24"
+              />
+            </div>
+          </span>
+          <span
+            class="brandName"
+          >
+            <div
+              data-slot="sidebar.brand.name"
+              style="display: contents;"
+            >
+              <span
+                class="fallbackBrandName"
+              >
+                DSH Local Build
+              </span>
+              <span
+                class="buildRevision"
+              >
+                abc1234
+              </span>
+            </div>
+          </span>
+        </span>
       </button>
       <button
         aria-label="Collapse sidebar"
@@ -206,19 +235,47 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         class="brand wide"
         type="button"
       >
-        <div
-          data-slot="sidebar.brand"
-          style="display: contents;"
+        <span
+          aria-hidden="true"
+          class="brandIdentity"
         >
-          <svg
-            aria-hidden="true"
-            data-content="951274b9"
-            fill="none"
-            height="24"
-            viewBox="0 0 182 24"
-            width="182"
-          />
-        </div>
+          <span
+            class="brandMark"
+          >
+            <div
+              data-slot="sidebar.brand.mark"
+              style="display: contents;"
+            >
+              <svg
+                aria-hidden="true"
+                data-content="965fe321"
+                fill="none"
+                height="17.6580310880829"
+                viewBox="0 0 23.16 17.04"
+                width="24"
+              />
+            </div>
+          </span>
+          <span
+            class="brandName"
+          >
+            <div
+              data-slot="sidebar.brand.name"
+              style="display: contents;"
+            >
+              <span
+                class="fallbackBrandName"
+              >
+                DSH Local Build
+              </span>
+              <span
+                class="buildRevision"
+              >
+                abc1234
+              </span>
+            </div>
+          </span>
+        </span>
       </button>
       <button
         aria-label="收起侧边栏"

@@ -8,7 +8,7 @@
  * holes (sidebar.workspaces / sidebar.settings) have no registrant here, so
  * the snapshots pin the shell chrome itself.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, waitFor } from '@testing-library/react'
 import { SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -18,7 +18,12 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // the shipped Chinese copy, so they state the browser they assume.
 usePinnedBrowserLanguages('zh-CN')
 
-afterEach(cleanup)
+beforeEach(() => { vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'abc1234') })
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllEnvs()
+})
 
 /**
  * Boot the package over the slot test runtime. The default bench stays on
@@ -36,10 +41,6 @@ async function bench(options: { locale?: 'en' } = {}) {
   await runtime.declare({ 'sidebar': { kind: 'single', scope: 'root' } })
   await runtime.mount({ inject: [...inject], apply })
   return { runtime, locale }
-}
-
-function CustomBrand({ variant }: { variant: 'wordmark' | 'mark' }) {
-  return <span data-testid="custom-sidebar-brand">custom-{variant}</span>
 }
 
 describe('sidebar shell snapshots', () => {
@@ -85,33 +86,6 @@ describe('sidebar shell snapshots', () => {
     act(() => { locale.setLocale('en') })
     expect(slot.view.getAllByRole('button', { name: 'New session' })).toHaveLength(2)
     expect(slot.view.queryByRole('button', { name: '新建会话' })).toBeNull()
-    await runtime.dispose()
-  })
-
-  it('lets a lower-priority brand replace both owner variants and restores the default on dispose', async () => {
-    const { runtime } = await bench({ locale: 'en' })
-    const slot = runtime.renderSlot('sidebar', { collapsed: false, width: 300 })
-    expect(slot.view.queryByTestId('custom-sidebar-brand')).toBeNull()
-
-    const disposeCustom = runtime.slots.register(
-      { name: 'sidebar.brand', priority: -100 },
-      CustomBrand,
-    )
-    await runtime.flush()
-    expect(slot.view.getByTestId('custom-sidebar-brand').textContent).toBe('custom-wordmark')
-
-    slot.update({ collapsed: true, width: 56 })
-    await waitFor(() => {
-      expect(slot.view.getByTestId('custom-sidebar-brand').textContent).toBe('custom-mark')
-    })
-
-    disposeCustom()
-    await runtime.flush()
-    expect(slot.view.queryByTestId('custom-sidebar-brand')).toBeNull()
-    expect(slot.container.querySelector('[data-slot="sidebar.brand"] > svg[aria-hidden="true"]'))
-      .not.toBeNull()
-    expect(runtime.slots.entries('sidebar.brand').map(entry => entry.options.priority ?? 0))
-      .toEqual([0])
     await runtime.dispose()
   })
 })

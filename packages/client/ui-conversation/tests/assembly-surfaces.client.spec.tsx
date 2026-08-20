@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Conversation assembly acceptance independent of Tool presentation. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { useState } from 'react'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ISession, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
@@ -48,10 +48,6 @@ function WorkspaceProbe({ open }: EmptyWorkspaceOwnerProps) {
   )
 }
 
-function CustomHeroBrand() {
-  return <div data-testid="custom-hero-brand">Custom hero</div>
-}
-
 async function bench(opts?: { blank?: boolean }) {
   const runtime = await SlotTestRuntime.create()
   runtime.provide('connection', { api: { settings: {} }, isLoopback: false })
@@ -80,36 +76,6 @@ async function bench(opts?: { blank?: boolean }) {
 }
 
 describe('resident composer', () => {
-  it('lets a lower-priority hero brand replace the default and restores it on dispose', async () => {
-    const runtime = await bench({ blank: true })
-    const view = runtime.renderRoot()
-    const heroShell = view.container.querySelector('[data-phase="hero"]')
-    const textarea = view.container.querySelector('textarea')
-    expect(heroShell).not.toBeNull()
-    expect(textarea).not.toBeNull()
-    expect(view.getByText('探索未至之境')).toBeTruthy()
-
-    const disposeCustom = runtime.slots.register(
-      { name: 'conversation.hero.brand', priority: -100 },
-      CustomHeroBrand,
-    )
-    await runtime.flush()
-    expect(view.getByTestId('custom-hero-brand')).toBeTruthy()
-    expect(view.queryByText('探索未至之境')).toBeNull()
-    expect(view.container.querySelector('[data-phase="hero"]')).toBe(heroShell)
-    expect(view.container.querySelector('textarea')).toBe(textarea)
-
-    act(() => { disposeCustom() })
-    await runtime.flush()
-    expect(view.queryByTestId('custom-hero-brand')).toBeNull()
-    expect(view.getByText('探索未至之境')).toBeTruthy()
-    expect(view.container.querySelector('[data-phase="hero"]')).toBe(heroShell)
-    expect(view.container.querySelector('textarea')).toBe(textarea)
-    expect(runtime.slots.entries('conversation.hero.brand').map(entry => entry.options.priority ?? 0))
-      .toEqual([0])
-    await runtime.dispose()
-  })
-
   it('renders the locked view state while no session exists at all', async () => {
     const runtime = await SlotTestRuntime.create()
     runtime.provide('connection', { api: { settings: {} }, isLoopback: false })

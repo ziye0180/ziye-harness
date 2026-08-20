@@ -3,12 +3,12 @@ import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { SidebarRootInjected } from './contract/slots.ts'
-import { DefaultSidebarBrand, SidebarRoot } from './SidebarRoot.tsx'
+import { SidebarRoot } from './SidebarRoot.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
-  SidebarBrandOwnerProps, SidebarFooterActionOwnerProps, SidebarRootComponentProps, SidebarRootInjected,
-  SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
+  SidebarBrandMarkOwnerProps, SidebarBrandNameOwnerProps, SidebarFooterActionOwnerProps,
+  SidebarRootComponentProps, SidebarRootInjected, SidebarSectionOwnerProps, SidebarSettingsOwnerProps,
 } from './contract/slots.ts'
 export type { SidebarKey } from './locales.ts'
 
@@ -45,7 +45,8 @@ export function apply(ctx: ClientContext): void {
       // region (header, search, session list, workspace dialogs), ui-settings
       // registers the foot trigger + settings panel.
       children: {
-        'sidebar.brand': { kind: 'single', scope: 'root' },
+        'sidebar.brand.mark': { kind: 'single', scope: 'root' },
+        'sidebar.brand.name': { kind: 'single', scope: 'root' },
         'sidebar.workspaces': { kind: 'single', scope: 'root' },
         'sidebar.settings': { kind: 'single', scope: 'root' },
         'sidebar.footer.action': { kind: 'list', scope: 'root' },
@@ -54,5 +55,4 @@ export function apply(ctx: ClientContext): void {
     }, SidebarRoot),
     'ui-sidebar: slot registration',
   )
-  ctx.slots.register({ name: 'sidebar.brand', priority: 0 }, DefaultSidebarBrand)
 }

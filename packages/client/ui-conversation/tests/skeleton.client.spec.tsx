@@ -4,7 +4,7 @@
 // owned draft, and the hero workspace picker (switching = retargetWorkspace).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import {
   createSnapshotStore, EMPTY_CHAT_SNAPSHOT, EMPTY_CONVERSATION_VIEWS,
 } from '@deepseek-ai/dsh-client-runtime/client'
@@ -22,6 +22,7 @@ import { en, zh } from '../src/client/locales.ts'
 import { ConversationRoot } from '../src/client/skeleton/ConversationRoot.tsx'
 import { ConversationSession, ConversationSessionHeader } from '../src/client/skeleton/ConversationSession.tsx'
 import { HeroShell } from '../src/client/skeleton/EmptyHero.tsx'
+import type { HeroShellProps } from '../src/client/skeleton/EmptyHero.tsx'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import type {
@@ -31,8 +32,8 @@ import type { ViewTab } from '../src/client/contract/views.ts'
 
 /** Machine-backed wiring over a sink spy. */
 function fakeWiring() {
-  const sink = vi.fn()
-  const shell = new SessionInputShell({ actx: {} as ClientContext, defaultSink: sink })
+  const sink = vi.fn(() => Promise.resolve({ kind: 'success' as const }))
+  const shell = new SessionInputShell({ actx: {} as ClientContext, defaultSink: sink, commandImages: { serialize: () => Promise.resolve([]), release: () => {}, unsupportedNotice: (token: string) => `${token.trim()} images-unsupported` } })
   return { wiring: shell, sink, shell }
 }
 
@@ -99,8 +100,6 @@ function mount(
     composerBlock?: { reason: string }
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
-    /** Replace the default hero-brand fixture with an owner-currency probe. */
-    heroBrandProbe?: boolean
   } = {},
 ) {
   const root = sid('root')
@@ -140,17 +139,10 @@ function mount(
   /** Owner share handed to the two composer tool-row seats, per render. */
   const seatOwners: { key: string; owner: unknown }[] = []
   let pickerOwner: unknown
-  let heroBrandOwner: unknown
   const renderSlot = ((key: string, owner: object, opts?: { only?: string }) => {
     slotCalls.push(key)
     if (key === 'conversation.input.model' || key === 'conversation.input.plan') {
       seatOwners.push({ key, owner })
-    }
-    if (key === 'conversation.hero.brand') {
-      heroBrandOwner = owner
-      return options.heroBrandProbe === true
-        ? <div data-testid="hero-brand-probe">Custom headline</div>
-        : <><span>探索未至之境</span><span>预览版</span></>
     }
     if (key === 'conversation.hero.workspace') { pickerOwner = owner; return null }
     if (key === 'conversation.session.header') {
@@ -262,16 +254,25 @@ function mount(
   return {
     view, chat, sink, retargetWorkspace, session, slotCalls, seatOwners, open,
     pickerOwner: () => pickerOwner,
-    heroBrandOwner: () => heroBrandOwner,
     rerender: () => { view.rerender(<ConversationRoot {...props} />) },
   }
 }
 
 describe('Hero chrome', () => {
   it('renders the English preview badge through the hero locale seat', () => {
-    const view = render(<HeroShell t={makeTranslate(en, commonEn)} />)
+    const renderSlot = vi.fn<HeroShellProps['renderSlot']>(() => null)
+    const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
     expect(view.getByText('Into the Unknown')).toBeTruthy()
     expect(view.getByText('Preview')).toBeTruthy()
+    expect(renderSlot).toHaveBeenCalledOnce()
+    expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
+    const brandMarkOwner = renderSlot.mock.calls[0]?.[1]
+    if (brandMarkOwner === undefined || !('size' in brandMarkOwner) || !('className' in brandMarkOwner)) {
+      throw new Error('hero brand-mark owner must provide size and className')
+    }
+    expect(brandMarkOwner.size).toBe(34)
+    expect(brandMarkOwner.className).toBeTypeOf('string')
+    expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
   })
 })
 
@@ -319,7 +320,7 @@ describe('ConversationRoot resident composer', () => {
     fireEvent.change(box, { target: { value: 'ordinary revised' } })
     expect(b.chat.store.getSnapshot().draft).toBe('ordinary revised')
     fireEvent.keyDown(box, { key: 'Enter' })
-    expect(b.sink).toHaveBeenCalledWith('ordinary revised', [], 'queue')
+    expect(b.sink).toHaveBeenCalledWith('ordinary revised', [], 'queue', expect.any(AbortSignal))
     expect((b.view.getByRole('button', { name: 'Child' }) as HTMLButtonElement).disabled).toBe(true)
     expect(b.view.queryByText('Root')).toBeNull()
   })
@@ -390,18 +391,6 @@ describe('ConversationRoot resident composer', () => {
     act(() => { owner.onPick(wid('second')) })
     expect(b.retargetWorkspace).toHaveBeenCalledWith(wid('second'))
     expect(b.view.getByText('Selected Folder')).toBeTruthy()
-  })
-
-  it('renders the hero brand slot with the marker-empty owner currency', () => {
-    const b = mount(
-      conversationSnapshot({ composerPhase: 'blank', blank: true }),
-      undefined,
-      undefined,
-      { heroBrandProbe: true },
-    )
-    expect(b.view.getByTestId('hero-brand-probe').textContent).toBe('Custom headline')
-    expect(b.heroBrandOwner()).toEqual({})
-    expect(b.view.queryByText('探索未至之境')).toBeNull()
   })
 
   it('settling phase: a summary that does not prove the session blank hides the composer while it opens', () => {
