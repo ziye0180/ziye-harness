@@ -128,8 +128,10 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
           <span className={css.headlineText}>
             {renderSlot('conversation.hero.brand.headline', {}, { fallback: t('hero.headline') })}
           </span>
-          <span className={css.previewBadge}>
-            {renderSlot('conversation.hero.brand.badge', {}, { fallback: t('hero.preview') })}
+          <span className={css.previewBadgeSlot}>
+            {renderSlot('conversation.hero.brand.badge', {}, {
+              fallback: <span className={css.previewBadge}>{t('hero.preview')}</span>,
+            })}
           </span>
         </div>
         <div className={css.body}>

@@ -10,7 +10,7 @@ The browser exposed official slots for sidebar identity and the Hero mark, but H
 
 ## Decision
 
-`ui-conversation` declares root-scoped single slots `conversation.hero.brand.headline` and `conversation.hero.brand.badge`. The shell retains the stable styled wrappers and passes an empty owner share; each slot falls back to the localized product copy when no occupant exists.
+`ui-conversation` declares root-scoped single slots `conversation.hero.brand.headline` and `conversation.hero.brand.badge`. The shell retains a styled headline wrapper and a layout-only badge column, then passes an empty owner share. The headline falls back to localized copy; the badge falls back to a localized element that owns the official badge chrome. A custom badge occupant therefore owns one visual layer instead of rendering inside official background and border styles.
 
 `ui-layout` declares root-scoped single slot `shell.document-title`. AppFrame passes the selected durable Session title as owner data and renders the build-selected product-title projector as the fallback. `ui-renderer` retains the only context-level `renderSlot('root')` call and no longer owns title projection.
 
@@ -18,7 +18,7 @@ Brand packages register into these declarations with `slots.inject()`. Occupants
 
 ## Verification
 
-Component tests cover localized fallbacks, custom Hero copy, selected-Session title projection, occupant replacement, and declaration disposal. The generated client catalog records every key, kind, scope, and owner field. Web replay and a real browser prove the default product remains unchanged and an out-of-tree occupant replaces all three values without DOM selectors.
+Component tests cover localized fallbacks, separate fallback and custom badge chrome, custom Hero copy, selected-Session title projection, occupant replacement, and declaration disposal. The generated client catalog records every key, kind, scope, and owner field. Web replay and a real browser prove the default product remains unchanged and an out-of-tree occupant replaces all three values without DOM selectors.
 
 ## Alternatives considered
 
@@ -28,6 +28,8 @@ Component tests cover localized fallbacks, custom Hero copy, selected-Session ti
 
 **Use CSS sibling selectors or DOM mutation.** Those approaches depend on private markup, cannot be validated by the slot catalog, and break independently from the public extension points.
 
+**Expose a selector so brands can clear the official badge background.** This still couples every brand to owner DOM and requires two visual layers to coordinate. A layout-only owner and occupant-owned badge chrome remove that dependency.
+
 ## Consequences
 
-Brand packages can replace Hero copy and the browser title through typed, lifecycle-owned registrations while the default DeepSeek UI remains byte-for-byte equivalent at the visible-copy level. The client slot catalog grows by three root slots, and ui-layout becomes the owner of title fallback projection. A custom brand must still provide its favicon and manifest through Host webserver extension points because those assets are outside the React slot tree.
+Brand packages can replace Hero copy and the browser title through typed, lifecycle-owned registrations while the default DeepSeek UI retains its visible copy and badge appearance. A custom badge owns its background, border, typography, and spacing; the shell owns only its grid position. The client slot catalog grows by three root slots, and ui-layout becomes the owner of title fallback projection. A custom brand must still provide its favicon and manifest through Host webserver extension points because those assets are outside the React slot tree.

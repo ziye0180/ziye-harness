@@ -24,6 +24,7 @@ import { ConversationRoot } from '../src/client/skeleton/ConversationRoot.tsx'
 import { ConversationSession, ConversationSessionHeader } from '../src/client/skeleton/ConversationSession.tsx'
 import { HeroShell } from '../src/client/skeleton/EmptyHero.tsx'
 import type { HeroShellProps } from '../src/client/skeleton/EmptyHero.tsx'
+import heroCss from '../src/client/skeleton/HeroShell.module.css'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import type {
@@ -285,7 +286,9 @@ describe('Hero chrome', () => {
     const renderSlot = vi.fn<HeroShellProps['renderSlot']>((_key, _owner, options) => options?.fallback ?? null)
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
     expect(view.getByText('Into the Unknown')).toBeTruthy()
-    expect(view.getByText('Preview')).toBeTruthy()
+    const preview = view.getByText('Preview')
+    expect(preview.className).toBe(heroCss.previewBadge)
+    expect(preview.parentElement?.className).toBe(heroCss.previewBadgeSlot)
     expect(renderSlot.mock.calls.map(call => call[0])).toEqual([
       'conversation.hero.brand.mark',
       'conversation.hero.brand.headline',
@@ -303,13 +306,16 @@ describe('Hero chrome', () => {
   it('lets brand copy occupants replace the localized Hero fallbacks', () => {
     const renderSlot = vi.fn<HeroShellProps['renderSlot']>((key, _owner, options) => {
       if (key === 'conversation.hero.brand.headline') return 'Custom headline'
-      if (key === 'conversation.hero.brand.badge') return 'Custom badge'
+      if (key === 'conversation.hero.brand.badge') return <span className="custom-badge">Custom badge</span>
       return options?.fallback ?? null
     })
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
 
     expect(view.getByText('Custom headline')).toBeTruthy()
-    expect(view.getByText('Custom badge')).toBeTruthy()
+    const customBadge = view.getByText('Custom badge')
+    expect(customBadge.className).toBe('custom-badge')
+    expect(customBadge.className).not.toBe(heroCss.previewBadge)
+    expect(customBadge.parentElement?.className).toBe(heroCss.previewBadgeSlot)
     expect(view.queryByText('Into the Unknown')).toBeNull()
     expect(view.queryByText('Preview')).toBeNull()
   })

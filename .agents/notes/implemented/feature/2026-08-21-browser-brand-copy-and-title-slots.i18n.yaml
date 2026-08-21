@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-21-browser-brand-copy-and-title-slots.md
-2026-08-21-browser-brand-copy-and-title-slots.md: 8bf676ff8021a296f6685e2536774528e68b6f87
-2026-08-21-browser-brand-copy-and-title-slots.zh.md: 6f2fb468c47ba797d648918b4f39c3c4414d9b82
+2026-08-21-browser-brand-copy-and-title-slots.md: 36c317dfc25708b39511ef2fb26699e652f6ace4
+2026-08-21-browser-brand-copy-and-title-slots.zh.md: 71b45f262dd202a295a00b482dc6b81aa3da40f0

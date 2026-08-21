@@ -186,7 +186,7 @@ describe('client slot projection', () => {
     const badge = entries.find(entry => entry.key === 'conversation.hero.brand.badge')
     const title = entries.find(entry => entry.key === 'shell.document-title')
     expect(headline?.example).toContain("() => 'My product headline'")
-    expect(badge?.example).toContain("() => 'Preview'")
+    expect(badge?.example).toContain("className: 'my-brand-badge'")
     expect(headline?.example).not.toContain("React.createElement('div'")
     expect(badge?.example).not.toContain("React.createElement('div'")
     expect(title?.example).toContain('React.useEffect')

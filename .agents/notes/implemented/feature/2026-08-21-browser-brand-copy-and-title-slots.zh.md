@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-`ui-conversation` 声明根作用域 single slot `conversation.hero.brand.headline` 和 `conversation.hero.brand.badge`。壳层保留稳定且已定义样式的包装元素，并传递空 owner share；没有 occupant 时，每个 slot 都回退到本地化产品文案。
+`ui-conversation` 声明根作用域 single slot `conversation.hero.brand.headline` 和 `conversation.hero.brand.badge`。壳层保留带样式的 headline 包装元素和仅负责布局的 badge 列，并传递空 owner share。headline 回退到本地化文案；badge 回退到持有官方徽章 chrome 的本地化元素。自定义 badge occupant 因而只持有一层视觉，不会渲染在官方背景与边框样式之内。
 
 `ui-layout` 声明根作用域 single slot `shell.document-title`。AppFrame 将选中会话的持久 title 作为 owner 数据传入，并以构建时选定的产品标题投影器作为 fallback。`ui-renderer` 继续持有唯一的上下文级 `renderSlot('root')` 调用，不再持有标题投影。
 
@@ -18,7 +18,7 @@ Status: implemented
 
 ## 验证
 
-组件测试覆盖本地化 fallback、自定义 Hero 文案、选中会话标题投影、occupant 替换与声明 dispose。生成的客户端目录记录每个 key、kind、scope 与 owner 字段。Web 回放与真实浏览器证明默认产品保持不变，同时树外 occupant 无需 DOM selector 即可替换这三个值。
+组件测试覆盖本地化 fallback、彼此分离的 fallback 与自定义 badge chrome、自定义 Hero 文案、选中会话标题投影、occupant 替换与声明 dispose。生成的客户端目录记录每个 key、kind、scope 与 owner 字段。Web 回放与真实浏览器证明默认产品保持不变，同时树外 occupant 无需 DOM selector 即可替换这三个值。
 
 ## 考虑过的替代方案
 
@@ -28,6 +28,8 @@ Status: implemented
 
 **使用 CSS sibling selector 或 DOM mutation。** 这些方案依赖私有标记，无法由 slot 目录验证，并且会在公共扩展点保持兼容时独立损坏。
 
+**暴露 selector，让品牌清除官方 badge 背景。** 该方案仍让每个品牌耦合 owner DOM，并要求两层视觉彼此协调。仅负责布局的 owner 与 occupant 持有的 badge chrome 会删除这种依赖。
+
 ## 后果
 
-品牌包可以通过有类型且受生命周期管理的注册替换 Hero 文案和浏览器标题，默认 DeepSeek UI 的可见文案保持完全一致。客户端 slot 目录增加三个根 slot，ui-layout 成为标题 fallback 投影的 owner。自定义品牌仍需通过 Host webserver 扩展点提供 favicon 与 manifest，因为这些资产位于 React slot 树之外。
+品牌包可以通过有类型且受生命周期管理的注册替换 Hero 文案和浏览器标题，默认 DeepSeek UI 保留其可见文案与 badge 外观。自定义 badge 持有自己的背景、边框、排版和间距；壳层只持有其网格位置。客户端 slot 目录增加三个根 slot，ui-layout 成为标题 fallback 投影的 owner。自定义品牌仍需通过 Host webserver 扩展点提供 favicon 与 manifest，因为这些资产位于 React slot 树之外。

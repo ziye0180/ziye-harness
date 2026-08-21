@@ -352,7 +352,7 @@ function exampleOf(declaration: SlotDeclaration): string {
 /** Slot-specific components for seats whose semantics cannot use generic visible markup. */
 const SLOT_EXAMPLE_COMPONENT: Readonly<Record<string, string>> = {
   'conversation.hero.brand.headline': "() => 'My product headline'",
-  'conversation.hero.brand.badge': "() => 'Preview'",
+  'conversation.hero.brand.badge': "() => React.createElement('span', { className: 'my-brand-badge' }, 'Preview')",
   'shell.document-title': [
     '({ title }) => {',
     '  React.useEffect(() => {',

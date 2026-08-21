@@ -183,7 +183,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
     /** Brand-owned headline copy inside the shell's stable headline wrapper. */
     'conversation.hero.brand.headline': { kind: 'single'; scope: 'root'; owner: HeroBrandCopyOwnerProps }
-    /** Brand-owned badge copy inside the shell's stable badge wrapper. */
+    /**
+     * Brand-owned badge content inside the shell's layout-only third-column
+     * wrapper. An occupant owns its badge chrome; the shell supplies a
+     * localized, styled preview badge as fallback.
+     */
     'conversation.hero.brand.badge': { kind: 'single'; scope: 'root'; owner: HeroBrandCopyOwnerProps }
     /**
      * The agent-preset chip beside the workspace picker on the new-session
@@ -635,9 +639,9 @@ export interface HeroBrandMarkOwnerProps {
   className?: string | undefined
 }
 
-/** Empty owner share for brand copy rendered inside shell-owned wrappers. */
+/** Empty owner share for Hero brand copy. */
 export interface HeroBrandCopyOwnerProps {
-  /** Slot occupants own text only; the shell owns wrapper markup and styling. */
+  /** The slot-specific contract defines whether the shell or occupant owns chrome. */
   children?: never
 }
 
