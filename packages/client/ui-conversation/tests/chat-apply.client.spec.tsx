@@ -92,6 +92,8 @@ describe('apply wiring', () => {
     // empty-state occupant is gone). Both are root-scoped: the new-session
     // screen precedes the session either would belong to.
     expect(b.slots.spec('conversation.hero.brand.mark')).toEqual({ kind: 'single', scope: 'root' })
+    expect(b.slots.spec('conversation.hero.brand.headline')).toEqual({ kind: 'single', scope: 'root' })
+    expect(b.slots.spec('conversation.hero.brand.badge')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('conversation.hero.workspace')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('conversation.hero.agentPreset')).toEqual({ kind: 'single', scope: 'root' })
     expect(b.slots.spec('conversation.session.header.lineage'))

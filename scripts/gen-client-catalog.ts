@@ -334,17 +334,34 @@ function keyDomainOf(declaration: SlotDeclaration, occupants: readonly SlotRegis
 /** A runnable minimal registration for one slot, per cardinality. */
 function exampleOf(declaration: SlotDeclaration): string {
   const options = [`name: '${declaration.key}'`, ...KIND_EXAMPLE[declaration.kind] ?? []].join(', ')
+  const component = SLOT_EXAMPLE_COMPONENT[declaration.key]
+    ?? "() => React.createElement('div', null, 'hello')"
   return [
     'return {',
     "  inject: ['slots'],",
     '  apply(ctx) {',
     `    ctx.slots.inject('${declaration.key}', () => ctx.slots.register(`,
     `      { ${options} },`,
-    "      () => React.createElement('div', null, 'hello'),",
+    `      ${component.replace(/\n/g, '\n      ')},`,
     '    ))',
     '  },',
     '}',
   ].join('\n')
+}
+
+/** Slot-specific components for seats whose semantics cannot use generic visible markup. */
+const SLOT_EXAMPLE_COMPONENT: Readonly<Record<string, string>> = {
+  'conversation.hero.brand.headline': "() => 'My product headline'",
+  'conversation.hero.brand.badge': "() => 'Preview'",
+  'shell.document-title': [
+    '({ title }) => {',
+    '  React.useEffect(() => {',
+    "    document.title = title === undefined ? 'My Product' : `${title} — My Product`",
+    "    return () => { document.title = 'My Product' }",
+    '  }, [title])',
+    '  return null',
+    '}',
+  ].join('\n'),
 }
 
 /** Extra example options per cardinality. */

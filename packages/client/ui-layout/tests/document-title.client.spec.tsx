@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { DocumentTitle } from '../src/client/DocumentTitle.tsx'
+import { DocumentTitle } from '@deepseek-ai/dsh-client-ui-layout/src/client/DocumentTitle.tsx'
 
 afterEach(() => {
   cleanup()

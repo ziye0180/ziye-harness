@@ -181,6 +181,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * package's `conversation` entry; the shell supplies a fish fallback.
      */
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
+    /** Brand-owned headline copy inside the shell's stable headline wrapper. */
+    'conversation.hero.brand.headline': { kind: 'single'; scope: 'root'; owner: HeroBrandCopyOwnerProps }
+    /** Brand-owned badge copy inside the shell's stable badge wrapper. */
+    'conversation.hero.brand.badge': { kind: 'single'; scope: 'root'; owner: HeroBrandCopyOwnerProps }
     /**
      * The agent-preset chip beside the workspace picker on the new-session
      * screen. Root scope: no session exists yet, so the choice is staged for
@@ -631,6 +635,12 @@ export interface HeroBrandMarkOwnerProps {
   className?: string | undefined
 }
 
+/** Empty owner share for brand copy rendered inside shell-owned wrappers. */
+export interface HeroBrandCopyOwnerProps {
+  /** Slot occupants own text only; the shell owns wrapper markup and styling. */
+  children?: never
+}
+
 /**
  * Full conversation-slot component props: runtime & child-render (view ring
  * + composer chain/bar + input-region + hero picker slots) & store & injected
@@ -644,6 +654,8 @@ export type ConversationSlotProps =
     | 'conversation.input.dock' | 'conversation.composer.dock'
     | 'conversation.input.left' | 'conversation.input.right'
     | 'conversation.hero.brand.mark'
+    | 'conversation.hero.brand.headline'
+    | 'conversation.hero.brand.badge'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >

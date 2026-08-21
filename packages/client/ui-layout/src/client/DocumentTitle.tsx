@@ -9,8 +9,7 @@ export interface DocumentTitleProps {
 }
 
 /**
- * Project the selected durable session title into the browser title and
- * restore the build-selected product title when unmounted.
+ * Project the selected durable session title into the browser title.
  * @param props - Selected session title projection.
  * @returns No rendered content.
  */
