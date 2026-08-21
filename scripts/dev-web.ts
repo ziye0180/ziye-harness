@@ -16,7 +16,7 @@
  * MUST NOT run concurrently with `pnpm run build`: both write the same
  * `lib/` and `apps/web/dist/` trees.
  *
- * Usage: `pnpm exec tsx scripts/dev-web.ts [--poll[=ms]]`. Requires one prior
+ * Usage: `node scripts/dev-web.ts [--poll[=ms]]`. Requires one prior
  * `pnpm run build`: every stage is incremental over the previous stage's output
  * and none of them bootstraps a missing tree. `--poll` switches the source
  * watchers to polling (default 500ms): network mounts (weka) deliver no inotify
@@ -189,7 +189,7 @@ if (isMain) {
   const args = process.argv.slice(2)
   const pollArg = args.find(a => a === '--poll' || a.startsWith('--poll='))
   if (args.some(a => a !== pollArg)) {
-    console.error('dev-web: usage: tsx scripts/dev-web.ts [--poll[=ms]]')
+    console.error('dev-web: usage: node scripts/dev-web.ts [--poll[=ms]]')
     process.exit(1)
   }
   const pollInterval = pollArg === undefined ? undefined : Number(pollArg.split('=')[1] ?? '500')

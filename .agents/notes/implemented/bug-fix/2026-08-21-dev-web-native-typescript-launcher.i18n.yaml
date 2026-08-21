@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-21-dev-web-native-typescript-launcher.md
+2026-08-21-dev-web-native-typescript-launcher.md: 7c78fa23db190a0b82669b2c763fc41fe1dee334
+2026-08-21-dev-web-native-typescript-launcher.zh.md: 19177fd99e065d2725aa65b9cef6710d75b8cce6
