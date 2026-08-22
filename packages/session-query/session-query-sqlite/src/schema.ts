@@ -13,6 +13,44 @@ export const SESSION_QUERY_SQLITE_APPLICATION_ID = 0x44534851
 /** Supported SQLite journal modes. */
 export type JournalMode = 'wal' | 'delete' | 'truncate' | 'persist'
 
+/* jscpd:ignore-start -- deliberately mirrors session-persistence-sqlite's
+ * process-wide Node 22 warning filter; concrete providers cannot depend on
+ * each other, and a separate shared package would exceed this local fix. */
+let nodeSqlite: Promise<typeof import('node:sqlite')> | undefined
+
+/** Load Node SQLite once while suppressing only its known Node 22 experimental warning. */
+function loadNodeSqlite(): Promise<typeof import('node:sqlite')> {
+  nodeSqlite ??= importNodeSqlite()
+  return nodeSqlite
+}
+
+async function importNodeSqlite(): Promise<typeof import('node:sqlite')> {
+  const emitWarning = Reflect.get(process, 'emitWarning')
+  /* v8 ignore start -- Node 22 alone emits this warning; primary coverage runs on Node 24. */
+  const filteredEmitWarning = (warning: string | Error, ...args: unknown[]): void => {
+    const message = warning instanceof Error ? warning.message : warning
+    const first = args[0]
+    const type = warning instanceof Error
+      ? warning.name
+      : typeof first === 'string'
+        ? first
+        : typeof first === 'object' && first !== null && 'type' in first
+          ? first.type
+          : undefined
+    if (message === 'SQLite is an experimental feature and might change at any time'
+      && type === 'ExperimentalWarning') return
+    Reflect.apply(emitWarning, process, [warning, ...args])
+  }
+  Reflect.set(process, 'emitWarning', filteredEmitWarning)
+  try {
+    return await import('node:sqlite')
+  } finally {
+    Reflect.set(process, 'emitWarning', emitWarning)
+  }
+  /* v8 ignore stop */
+}
+/* jscpd:ignore-end */
+
 const DERIVED_USER_TABLES = new Set([
   'search_state',
   'persisted_sessions',
@@ -49,7 +87,7 @@ export async function openSearchDatabase(path: string, journalMode: JournalMode)
     await mkdir(dirname(actual), { recursive: true, mode: 0o700 })
     await createDatabaseFile(actual)
   }
-  const { DatabaseSync } = await import('node:sqlite')
+  const { DatabaseSync } = await loadNodeSqlite()
   const db = new DatabaseSync(actual)
   try {
     const { application_id: applicationId } = db.prepare('PRAGMA application_id').get() as { application_id: number }
