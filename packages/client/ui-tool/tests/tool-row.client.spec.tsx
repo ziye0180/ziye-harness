@@ -102,12 +102,32 @@ describe('tool-call-model', () => {
     expect(toolRowModel('read', running({ name: 'read', argsRaw: '{"path":"/tmp/x.ts"}' })).summary).toBe('/tmp/x.ts')
     expect(toolRowModel('write', running({ name: 'write', argsRaw: '{"file_path":"src/x.ts"}' })).summary).toBe('src/x.ts')
     expect(toolRowModel('edit', running({ name: 'edit', argsRaw: '{"file_path":"src/x.ts"}' })).summary).toBe('src/x.ts')
-    // Other rows prefix the real tool name into the summary slot (figma
-    // flows: static "Tool call" title, the name rides the mutable summary).
-    expect(toolRowModel('x', running({ argsRaw: '{"n":1}' })).summary).toBe('x · {"n":1}')
-    expect(toolRowModel('x', running({ argsRaw: 'not json' })).summary).toBe('x · not json')
-    expect(toolRowModel('x', running({ argsRaw: '' })).summary).toBe('x · c1')
+    // Unknown rows keep only the wire name in the collapsed summary; their
+    // opaque arguments remain available in the expanded input.
+    expect(toolRowModel('x', running({ argsRaw: '{"n":1}' })).summary).toBe('x')
+    expect(toolRowModel('x', running({ argsRaw: 'not json' })).summary).toBe('x')
+    expect(toolRowModel('x', running({ argsRaw: '' })).summary).toBe('x')
     expect(toolRowModel('', running({ argsRaw: '' })).summary).toBe('c1')
+  })
+
+  it('uses generic presenter titles and keeps raw arguments out of the collapsed summary', () => {
+    const model = toolRowModel('weixin_send', result({
+      call: { name: 'weixin_send', argsRaw: '{"messages":[{"type":"text","text":"hi"}]}' },
+      callView: {
+        card: 'generic',
+        title: '发送微信消息（1 项）',
+        rawInput: '按顺序发送文本与媒体',
+      },
+      resultView: { card: 'generic', title: '微信消息已发送' },
+      content: [{ type: 'text', text: '微信消息已送达（1 条）。' }],
+    }))
+
+    expect(model).toMatchObject({
+      title: '微信消息已发送',
+      summary: '发送微信消息（1 项）',
+      body: '按顺序发送文本与媒体',
+      output: '微信消息已送达（1 条）。',
+    })
   })
 
   it('joins multi-query web search arguments in the summary', () => {
@@ -268,6 +288,17 @@ describe('ToolRow', () => {
     expect(view.queryByRole('button')).toBeNull()
     expect(view.container.querySelector('[aria-expanded]')).toBeNull()
     expect(view.queryByTestId('tool-icon')).not.toBeNull()
+  })
+
+  it('treats Tool-tree details as collapsed disclosure content', () => {
+    const view = render(
+      <ToolRow {...rowProps} body={null} details={<div>Nested activity</div>} />,
+    )
+    const row = view.getByRole('button')
+
+    expect(view.queryByText('Nested activity')).toBeNull()
+    fireEvent.click(row)
+    expect(view.getByText('Nested activity')).toBeTruthy()
   })
 
   it('the row toggles from Enter and Space, ignoring other keys', () => {

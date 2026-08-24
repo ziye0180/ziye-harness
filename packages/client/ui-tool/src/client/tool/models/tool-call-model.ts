@@ -1,8 +1,9 @@
 /**
  * Pure row-model derivation for tool summary rows: variant classification,
  * one-line summary, expanded-body text, and flattened result output from the
- * frozen call slice. Input material comes from the call ARGUMENTS; output and
- * error material from the settled result node. A call whose render intent is
+ * frozen call slice. Presenter-authored generic views take precedence over raw
+ * arguments and result content; calls without a presenter use the generic
+ * argument fallback. A call whose render intent is
  * a terminal card gets its expanded body from the views instead, through
  * `terminalCardModel` in terminal-card-model.ts.
  */
@@ -106,15 +107,35 @@ export interface ToolRowModel {
  * @returns the flattened result text (may be empty).
  */
 export function resultText(node: ToolResultNode): string {
+  const text = contentText(node.content)
+  if (text !== '') return text
+  return node.error === undefined ? '' : `${node.error.name}: ${node.error.code}`
+}
+
+function contentText(content: ToolResultNode['content']): string {
   const parts: string[] = []
-  for (const block of node.content) {
+  for (const block of content) {
     if (block.type === 'text') parts.push(block.text)
     else parts.push(JSON.stringify(block, null, 2))
   }
-  if (parts.length === 0 && node.error !== undefined) {
-    parts.push(`${node.error.name}: ${node.error.code}`)
-  }
   return parts.join('\n')
+}
+
+function displayValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  return JSON.stringify(value, null, 2)
+}
+
+function genericCallBody(block: ToolCallBlock): string | null | undefined {
+  const view = block.callView
+  if (view?.card !== 'generic') return undefined
+  const parts: string[] = []
+  if (view.rawInput !== undefined) parts.push(displayValue(view.rawInput))
+  if (view.content !== undefined) {
+    const text = contentText(view.content)
+    if (text !== '') parts.push(text)
+  }
+  return parts.length === 0 ? null : parts.join('\n')
 }
 
 function parseArgs(argsRaw: string): unknown {
@@ -217,6 +238,8 @@ function deriveBody(variant: ToolRowVariant, argsRaw: string): string | null {
 export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: string, home?: string): ToolRowModel {
   const variant = classifyTool(toolName)
   const done = 'kind' in block
+  const callView = block.callView?.card === 'generic' ? block.callView : null
+  const resultView = done && block.resultView?.card === 'generic' ? block.resultView : null
   const argsRaw = (done ? block.call?.argsRaw : block.argsRaw) ?? ''
   const state: ToolRowState = !done ? 'running'
     : block.error?.code === 'interrupted' ? 'stopped'
@@ -225,22 +248,35 @@ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: strin
     ? block.callId
     : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
   const toolTitle = TOOL_TITLES[toolName]
-  // Others keeps the static "Tool call" title (figma literal); the real tool
-  // name rides the mutable summary slot unless the tool owns a specific title.
-  const summary = variant === 'others' && toolName !== '' && toolTitle === undefined
-    ? `${toolName} · ${base}`
+  const presenterTitle = variant === 'others' ? resultView?.title ?? callView?.title : undefined
+  const title = variant === 'others' && presenterTitle !== undefined
+    ? presenterTitle
+    : toolTitle ?? VARIANT_TITLES[variant]
+  const summary = variant === 'others'
+    ? presenterTitle === undefined
+      ? toolTitle === undefined
+        ? toolName || base
+        : base
+      : resultView?.title !== undefined && callView?.title !== undefined
+        ? callView.title
+        : ''
     : base
   // The empty string is "no text" for both derived result fields: a settled
   // call with blank content has nothing to expand, and a blank first line
   // would erase the collapsed error row's summary slot.
-  const output = done ? (resultText(block) || null) : null
+  const output = done
+    ? (variant === 'others' && resultView?.content !== undefined
+      ? contentText(resultView.content)
+      : resultText(block)) || null
+    : null
   const errorSummary = state === 'error' && output !== null ? firstLine(output) : null
+  const presenterBody = variant === 'others' ? genericCallBody(block) : undefined
   return {
     variant,
-    title: toolTitle ?? VARIANT_TITLES[variant],
+    title,
     summary,
     filePath: deriveFilePath(variant, argsRaw),
-    body: deriveBody(variant, argsRaw),
+    body: presenterBody === undefined ? deriveBody(variant, argsRaw) : presenterBody,
     output,
     errorSummary,
     state,

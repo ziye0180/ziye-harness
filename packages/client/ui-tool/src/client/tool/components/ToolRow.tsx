@@ -12,7 +12,8 @@
 // container so a long payload scrolls internally instead of taking over the
 // message flow. Every card kind starts collapsed, so a run of tool calls stays
 // scannable; the details panel is the single-call full-height reading surface.
-// Expand state is component-local view state. File-tool summaries are path
+// Expand state is component-local for atomic rows and controlled by
+// ToolCallTree for composite activity groups. File-tool summaries are path
 // links that open through the host (stopPropagation keeps the two gestures
 // independent); an error row's collapsed summary is the failure's first line in
 // the error color.
@@ -86,6 +87,12 @@ export interface ToolRowProps {
    * list or fetched-source card when present.
    */
   web?: WebBlockProps | null | undefined
+  /** Tool-tree-owned nested activity rendered only while this row is expanded. */
+  details?: ReactNode
+  /** Controlled disclosure state for a Tool-tree activity group. */
+  expanded?: boolean | undefined
+  /** Receive controlled disclosure changes from a Tool-tree activity group. */
+  onExpandedChange?: ((expanded: boolean) => void) | undefined
   state: ToolRowState
   /**
    * Filesystem path from tool args; when set with onOpenFile, the summary
@@ -141,23 +148,28 @@ export function ToolRow({
   read,
   search,
   web,
+  details,
+  expanded: controlledExpanded,
+  onExpandedChange,
   state,
   filePath,
   onOpenFile,
   inspect,
 }: ToolRowProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [localExpanded, setLocalExpanded] = useState(false)
   const terminalBody = terminal ?? null
   const diffBody = diff ?? null
   const readBody = read ?? null
   const searchBody = search ?? null
   const webBody = web ?? null
+  const detailBody = details ?? null
   const outputText = output ?? null
   // A card replaces the text body; a call carries at most one card kind, so the
-  // card props are mutually exclusive. Any of them, or a text body/output,
-  // makes the row expandable.
+  // card props are mutually exclusive. Any card, text body/output, or nested
+  // activity makes the row expandable.
   const card = terminalBody ?? diffBody ?? readBody ?? searchBody ?? webBody
-  const expandable = body !== null || outputText !== null || card !== null
+  const expandable = body !== null || outputText !== null || card !== null || detailBody !== null
+  const expanded = controlledExpanded ?? localExpanded
   const open = expanded && expandable
   // The run-state label AT needs: the StateDot and the running sweep are both
   // aria-hidden / colour-only, so a stopped or running row is otherwise silent.
@@ -172,7 +184,9 @@ export function ToolRow({
   // The failure line is error prose, not the path: no open-file affordance.
   const fileLink = filePath !== undefined && onOpenFile !== undefined && failureLine === null
   const toggleExpand = () => {
-    setExpanded(v => !v)
+    const next = !expanded
+    if (controlledExpanded === undefined) setLocalExpanded(next)
+    onExpandedChange?.(next)
   }
   const openFile = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
@@ -290,6 +304,7 @@ export function ToolRow({
                         )}
                       </>
                     )}
+          {detailBody}
           {inspect !== undefined && (
             <button
               type="button"

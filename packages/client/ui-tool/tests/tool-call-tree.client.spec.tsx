@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** ToolCallTree-owned root/subcall markers and selection projection. */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import type { HostDescription } from '@deepseek-ai/dsh-client-connection/client'
 import type { ConversationSnapshot, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -74,12 +74,30 @@ describe('ToolCallTree', () => {
     }
     const view = render(<ToolCallTree {...props(block, leaf.callId)} />)
     const nests = view.container.querySelectorAll('[data-subcalls]')
-    expect(nests[0]?.parentElement).toBe(view.container.querySelector('[data-chat-call-id="parent"]'))
-    expect(nests[1]?.parentElement).toBe(view.container.querySelector('[data-chat-call-id="parent:code:1"]'))
+    expect(nests).toHaveLength(2)
+    expect(view.container.querySelectorAll('[data-tool-activity-group] > [data-variant] [aria-expanded="true"]'))
+      .toHaveLength(2)
     expect(view.container.querySelector('[data-chat-call-id="parent"]')?.hasAttribute('data-selected')).toBe(false)
     expect(view.container.querySelector('[data-chat-call-id="parent:code:1"]')?.hasAttribute('data-selected')).toBe(false)
     expect(view.container.querySelector('[data-chat-call-id="parent:code:1:code:1"]')?.getAttribute('data-selected')).toBe('true')
-    expect(nests).toHaveLength(2)
+  })
+
+  it('collapses a composite Tool tree into one activity row until expanded', () => {
+    const child = root('parent:code:1', { name: 'read', argsRaw: '{"path":"a.ts"}' })
+    const block = {
+      ...root('parent', {
+        name: 'run_code',
+        argsRaw: '{"code":"return 1","description":"Inspect the project"}',
+      }),
+      subCalls: [child],
+    }
+    const view = render(<ToolCallTree {...props(block)} />)
+
+    expect(view.getByText('执行了 1 项操作')).toBeTruthy()
+    expect(view.queryByText('a.ts')).toBeNull()
+    fireEvent.click(view.getByRole('button', { name: /执行了 1 项操作/ }))
+    expect(view.getByText('a.ts')).toBeTruthy()
+    expect(view.container.querySelector('[data-subcalls]')).not.toBeNull()
   })
 
   it('abbreviates a POSIX home path in the generic tool summary', () => {

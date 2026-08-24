@@ -8,13 +8,13 @@ Business UI packages register only their wire Tool names and atomic views. They 
 
 ## Rendering contract
 
-`ToolCallTree` receives one root `ToolCallBlock` that already contains recursive `subCalls`, selection state, the session `cwd`, and Host callbacks for opening files and inspecting calls. It recursively walks the standard call blocks and sends the root and children at every depth through the same atomic dispatch path, without subscribing to a separate parent-to-children map.
+`ToolCallTree` receives one root `ToolCallBlock` that already contains recursive `subCalls`, selection state, the session `cwd`, and Host callbacks for opening files and inspecting calls. A block with children renders as one collapsed activity row; expansion mounts the root atomic view and its recursively grouped descendants through the same keyed dispatch path. Selecting a descendant expands its ancestor groups without introducing a separate parent-to-children store.
 
 Each root and child wrapper preserves the `data-chat-anchor-key="call:<id>"` and `data-chat-call-id` DOM contract used for paging and selection.
 
 The package also fills `conversation.details.tool` with `ToolDetails`. The row and details renderers share the same pure card models for `terminal`, `read`, `diff`, `search`, and `web` render intents. Unknown intent tags and malformed wire card data fall back to flattened Tool result text.
 
-Generic rows classify known Tool names into search, read, shell, write, edit, code, or generic variants. Running, successful, failed, and interrupted lifecycle states come only from the frozen call/result slice. File paths resolve against the session `cwd` only when the user invokes the Host open-file callback; presentation code does not read Session services.
+Generic rows classify known Tool names into search, read, shell, write, edit, code, or generic variants. Generic `callView` and `resultView` titles, input, and content outrank raw arguments; a presenterless unknown Tool shows only its wire name while collapsed and keeps the arguments in the expanded input. Running, successful, failed, and interrupted lifecycle states come only from the frozen call/result slice. File paths resolve against the session `cwd` only when the user invokes the Host open-file callback; presentation code does not read Session services.
 
 ## Atomic Tool views
 
@@ -36,7 +36,7 @@ Card-specific limits and fallback rules remain in the owning [terminal](../../..
 
 ## Model Experience
 
-None, as this package renders already logged Tool calls and results without altering model requests, Tool execution, or session events.
+None, as this package only changes human-facing presentation of already logged Tool calls and results without altering model requests, Tool execution, or session events.
 
 #### KV Cache effect
 

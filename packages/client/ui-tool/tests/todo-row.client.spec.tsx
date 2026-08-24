@@ -114,15 +114,19 @@ describe('TodoRow', () => {
     expect(stopped.container.querySelector('[data-state="stopped"]')).not.toBeNull()
   })
 
-  it('falls back to the generic summary on malformed args and marks the error state', () => {
+  it('falls back to the compact generic row on malformed args and keeps the full input expandable', () => {
     const view = render(<TodoRow {...rowProps(resultNode('not json', { isError: true }))} />)
     expect(view.container.querySelector('[data-state="error"]')).not.toBeNull()
-    expect(screen.getByText('todo_write · not json')).toBeTruthy()
+    expect(screen.getByText('todo_write')).toBeTruthy()
+    expect(screen.queryByText('todo_write · not json')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { expanded: false }))
+    expect(screen.getByText('not json')).toBeTruthy()
   })
 
   it('falls back when parsed args carry no todos array', () => {
     render(<TodoRow {...rowProps(resultNode('{"other":1}'))} />)
-    expect(screen.getByText('todo_write · {"other":1}')).toBeTruthy()
+    expect(screen.getByText('todo_write')).toBeTruthy()
+    expect(screen.queryByText('todo_write · {"other":1}')).toBeNull()
   })
 
   it('leading toggle expands the raw args body', () => {
@@ -136,14 +140,16 @@ describe('TodoRow', () => {
     { label: 'null root', argsRaw: 'null' },
     { label: 'non-object root', argsRaw: '42' },
     { label: 'null items', argsRaw: '{"todos":[null]}' },
-  ])('falls back to the generic summary on valid JSON with an invalid shape ($label)', ({ argsRaw }) => {
+  ])('falls back to the compact generic row on valid JSON with an invalid shape ($label)', ({ argsRaw }) => {
     render(<TodoRow {...rowProps(resultNode(argsRaw))} />)
-    expect(screen.getByText(`todo_write · ${argsRaw}`)).toBeTruthy()
+    expect(screen.getByText('todo_write')).toBeTruthy()
+    expect(screen.queryByText(`todo_write · ${argsRaw}`)).toBeNull()
   })
 
-  it('window-truncated result falls back to the callId summary', () => {
+  it('window-truncated result keeps the wire name without exposing its call id', () => {
     render(<TodoRow {...rowProps(resultNode('', { call: null }))} />)
-    expect(screen.getByText('todo_write · c1')).toBeTruthy()
+    expect(screen.getByText('todo_write')).toBeTruthy()
+    expect(screen.queryByText(/c1/)).toBeNull()
   })
 
   it('injects the keyed toolview declaration directly', () => {

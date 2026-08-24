@@ -108,7 +108,7 @@ describe('mux live view computation', () => {
     const api = createApiProxy(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
     const abort = new AbortController()
     const stream = api.events.mux({ rpcId: RpcId('t-mux'), payload: {} }, abort.signal)
-    const collected = collect(stream, 9, abort)
+    const collected = collect(stream, 11, abort)
     const rawResult = `RAW_RESULT:${'x'.repeat(64 * 1024)}`
 
     const session = ctx.sessions.create()
@@ -125,6 +125,22 @@ describe('mux live view computation', () => {
         isError: false,
       }),
     }, { surfaceOp: 'append' })
+    session.append('tool/code-dispatch-start', {
+      rootCallId: CallId('c-code'),
+      parentCallId: CallId('c-code'),
+      subCallId: CallId('c-code:code:1'),
+      name: 'gen',
+      arguments: {},
+    })
+    session.append('tool/code-dispatch', {
+      rootCallId: CallId('c-code'),
+      parentCallId: CallId('c-code'),
+      subCallId: CallId('c-code:code:1'),
+      name: 'gen',
+      arguments: {},
+      isError: false,
+      content: [{ type: 'text', text: 'nested ok' }],
+    })
     session.append('tool/call', { turn: 1, step: 1, callId: CallId('c-plain'), name: 'plain', arguments: '{}' })
     session.append('tool/call', { turn: 1, step: 1, callId: CallId('c-boom'), name: 'boom', arguments: '{}' })
     session.append('tool/result', {
@@ -166,6 +182,10 @@ describe('mux live view computation', () => {
     expect('view' in (byCall.get('tool/call:c-boom') ?? {})).toBe(false)
     // Result pairing through the live table: presentResult saw the call's args.
     expect(byCall.get('tool/result:c-gen')?.view).toEqual({ for: 'result', view: { card: 'generic', title: 'gen done' } })
+    const codeStart = events.find(frame => frame.event.type === 'tool/code-dispatch-start')
+    const codeResult = events.find(frame => frame.event.type === 'tool/code-dispatch')
+    expect(codeStart?.view).toEqual({ for: 'call', view: { card: 'generic', title: 'gen call' } })
+    expect(codeResult?.view).toEqual({ for: 'result', view: { card: 'generic', title: 'gen done' } })
   })
 
   it('serves history entries with call/result views, backscan pairing, and soft-falls', async () => {

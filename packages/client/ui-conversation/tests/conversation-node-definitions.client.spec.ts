@@ -299,22 +299,28 @@ describe('built-in conversation node Definitions', () => {
     expect((settled?.data as ToolChatData).root).toMatchObject({ kind: 'tool-result', callId: 'root' })
 
     const history = assembler([
-      at(14, 'tool/code-dispatch-start', {
-        rootCallId: 'history-root',
-        parentCallId: 'history-root',
-        subCallId: 'child',
-        name: 'read',
-        arguments: { path: 'README.md' },
-      }),
-      at(15, 'tool/code-dispatch', {
-        rootCallId: 'history-root',
-        parentCallId: 'history-root',
-        subCallId: 'child',
-        name: 'read',
-        arguments: { path: 'README.md' },
-        isError: false,
-        content: [{ type: 'text', text: 'contents' }],
-      }),
+      {
+        ...at(14, 'tool/code-dispatch-start', {
+          rootCallId: 'history-root',
+          parentCallId: 'history-root',
+          subCallId: 'child',
+          name: 'read',
+          arguments: { path: 'README.md' },
+        }),
+        view: { for: 'call', view: { card: 'generic', title: '读取 README' } },
+      },
+      {
+        ...at(15, 'tool/code-dispatch', {
+          rootCallId: 'history-root',
+          parentCallId: 'history-root',
+          subCallId: 'child',
+          name: 'read',
+          arguments: { path: 'README.md' },
+          isError: false,
+          content: [{ type: 'text', text: 'contents' }],
+        }),
+        view: { for: 'result', view: { card: 'generic', title: 'README 已读取' } },
+      },
       at(16, 'tool/result', {
         turn: 2,
         step: 1,
@@ -323,7 +329,13 @@ describe('built-in conversation node Definitions', () => {
     ], true)
     const before = node(snapshot(history), 'tool-call')
     expect((before?.data as ToolChatData).root.subCalls).toMatchObject([
-      { kind: 'tool-result', callId: 'child', call: { name: 'read' } },
+      {
+        kind: 'tool-result',
+        callId: 'child',
+        call: { name: 'read' },
+        callView: { card: 'generic', title: '读取 README' },
+        resultView: { card: 'generic', title: 'README 已读取' },
+      },
     ])
 
     history.prepend([

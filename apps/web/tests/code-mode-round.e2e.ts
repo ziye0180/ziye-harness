@@ -2,7 +2,7 @@
 // shipped tree with the tools row patched to mode: code (the run_code-only
 // wire), a real chromium sends a prompt engineered to elicit one run_code
 // program with several sub-calls, and the UI must render the code-variant
-// parent row with its always-visible nested sub-rows — each sub-row the same
+// parent row as a collapsed activity group — each expanded sub-row the same
 // component a native call renders through — plus details-panel resolution for
 // a clicked sub-row. Drive steps wait only on generic completion
 // (whenTurnSettled); assertion steps run in replay/refresh only.
@@ -10,7 +10,7 @@
 // DSH_SNAPSHOT=refresh regenerates ui.expected.md.
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import type { Browser, Page } from 'playwright'
+import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
@@ -29,6 +29,15 @@ const MODE = webSnapshotMode()
 // need. Never asserted against model prose.
 const PROMPT = 'Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt '
   + 'catching its error in the program. Return an object with both outcomes. Then reply DONE and stop.'
+
+async function expandFirstActivity(page: Page): Promise<Locator> {
+  const toggle = page.locator('[data-tool-activity-group] [data-disclosure-row]').first()
+  await toggle.waitFor({ timeout: 10_000 })
+  if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click()
+  const nest = page.locator('[data-subcalls]').first()
+  await nest.waitFor({ timeout: 10_000 })
+  return nest
+}
 
 describe('web e2e: Code Mode round renders nested sub-calls', () => {
   let scaffold: WebScaffold
@@ -100,32 +109,31 @@ describe('web e2e: Code Mode round renders nested sub-calls', () => {
     expect(bashContent.filter(block => block.type === 'text').map(block => block.text).join('')).toContain('CODE_ROUND_OK')
   })
 
-  it.skipIf(MODE === 'record')('renders the code parent row with always-visible nested sub-rows', async () => {
+  it.skipIf(MODE === 'record')('collapses Code Mode work into one activity row and expands its sub-rows on demand', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-code-mode-rows'))
     await expect.poll(() => page.getByText('DONE', { exact: true }).count(), { timeout: 15_000 }).toBeGreaterThanOrEqual(1)
-    // The parent run_code row wears the code variant with the model-authored
-    // description as its summary (the presentCall contract).
-    const codeRow = page.locator('[data-variant="code"]').first()
-    await codeRow.waitFor({ timeout: 10_000 })
-    // Nested rows are visible WITHOUT any expand interaction, inside the
-    // sub-call nest, each rendered by the same components as native rows:
-    // the bash sub-call landed in the bash sample registration.
-    const nest = page.locator('[data-subcalls]').first()
-    await nest.waitFor({ timeout: 10_000 })
+    const toggle = page.locator('[data-tool-activity-group] [data-disclosure-row]').first()
+    await toggle.waitFor({ timeout: 10_000 })
+    expect(await toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(await page.locator('[data-subcalls]').count()).toBe(0)
+
+    const nest = await expandFirstActivity(page)
     expect(await nest.locator('[data-sample="bash"]').count()).toBeGreaterThanOrEqual(1)
     // The failing read sub-call wears the same error state a native failed
     // row wears (the recorded program tolerates a read of missing.txt).
     expect(await nest.locator('[data-state="error"]').count()).toBeGreaterThanOrEqual(1)
+    await toggle.click()
   }, 60_000)
 
   it.skipIf(MODE === 'record')('a bash sub-row click leaves the default details panel closed', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-code-mode-details'))
-    const nest = page.locator('[data-subcalls]').first()
+    const nest = await expandFirstActivity(page)
     const frame = page.locator('[style*="grid-template-columns"]').first()
     expect(await frame.getAttribute('data-details-collapsed')).toBe('true')
     await nest.locator('[data-sample="bash"]').first().click()
     // Tool rows do not drive layout geometry; the Session's default panel stays closed.
     await expect.poll(() => frame.getAttribute('data-details-collapsed'), { timeout: 5_000 }).toBe('true')
+    await page.locator('[data-tool-activity-group] [data-disclosure-row]').first().click()
   })
 
   it.skipIf(MODE === 'record')('matches the conversation aria golden with stable anchors', async () => {

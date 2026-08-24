@@ -674,13 +674,13 @@ function matchesQuestions(payload: QuestionResponsePayload, pending: PendingQues
 }
 
 /**
- * Compute the render intent for a tool/call or tool/result event through the
- * presenters registered at this moment; every other event type gets none. A
- * result's presenter needs its call's parsed args — `argsFor` supplies them
- * (live: the per-session call table; history: an in-page backscan), returning
- * undefined when the pairing is unavailable (e.g. the call fell off the page),
- * which soft-falls to no view. Presenter or JSON.parse throws also soft-fall:
- * the client's documented default (generic JSON card) covers every miss.
+ * Compute the render intent for root Tool and nested Code Dispatch events
+ * through the presenters registered at this moment; every other event type
+ * gets none. A root result's presenter needs its call's parsed args — `argsFor`
+ * supplies them (live: the per-session call table; history: an in-page
+ * backscan). Code Dispatch events already carry their normalized arguments.
+ * Missing root pairing, presenter failures, and JSON parse failures soft-fall
+ * to no view so the Client's generic card can render the durable facts.
  */
 function viewFor(
   ctx: Context,
@@ -698,6 +698,16 @@ function viewFor(
       const { name, arguments: raw } = event.data as ToolCallData
       const view = ctx.tools.get(name, scope)?.presentCall?.(JSON.parse(raw))
       return view === undefined ? undefined : { for: 'call', view }
+    }
+    if (event.type === 'tool/code-dispatch-start') {
+      const { name, arguments: args } = event.data
+      const view = ctx.tools.get(name, scope)?.presentCall?.(args)
+      return view === undefined ? undefined : { for: 'call', view }
+    }
+    if (event.type === 'tool/code-dispatch') {
+      const { name, arguments: args, content, isError } = event.data
+      const view = ctx.tools.get(name, scope)?.presentResult?.(args, { content, isError })
+      return view === undefined ? undefined : { for: 'result', view }
     }
     if (event.type === 'tool/result') {
       const { message, meta } = event.data
