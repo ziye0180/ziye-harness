@@ -8,10 +8,10 @@
 
 ## 服务：`AgentPresets`（ctx 键：`agentPresets`）
 
-发现过程不做缓存：`list()` 与 `resolve()` 每次调用都重新读取各个根目录，因此进程运行期间新写的 preset 立即可见，被删除的 preset 也会在下一次读取时消失。发现过程同时负责 preset 的**健康**：组装文件缺失或不可加载（YAML 无法解析——用加载器自己的方言检查，含 `!!js`——或不是由具名插件行组成的列表）的目录会作为携带 `broken` 原因的行列出而不是被跳过，因为被跳过的目录仍在磁盘上占着它的 id，而各个界面却没有任何可删的东西。目录名不是可用 preset id（`[a-z0-9][a-z0-9-]*`）的目录才被直接跳过：复制永远不可能占用那种名字。
+发现过程不做缓存：`list()` 与 `resolve()` 每次调用都重新读取各个根目录，因此进程运行期间新写的 preset 立即可用，被删除的 preset 也会在下一次读取时消失。随后由 `list()` 应用部署方可选的可见性策略；`resolve()` 保留完整的已发现清单，使已记录会话不受后来展示变化的影响。发现过程同时负责 preset 的**健康**：组装文件缺失或不可加载（YAML 无法解析——用加载器自己的方言检查，含 `!!js`——或不是由具名插件行组成的列表）的目录会作为携带 `broken` 原因的行列出而不是被跳过，因为被跳过的目录仍在磁盘上占着它的 id，而各个界面却没有任何可删的东西。目录名不是可用 preset id（`[a-z0-9][a-z0-9-]*`）的目录才被直接跳过：复制永远不可能占用那种名字。
 
 - `ctx.agentPresets.defaultId: string` 调用方未指定时挂载的 preset id。
-- `ctx.agentPresets.list(): Promise<AgentPreset[]>` 当前各根目录提供的全部 preset；id 重复时靠前的根目录胜出；损坏的 preset 也在其中，各自携带原因。
+- `ctx.agentPresets.list(): Promise<AgentPreset[]>` 当前各根目录发布到 roster 界面的全部 preset；id 重复时靠前的根目录胜出；可见的损坏 preset 也在其中，各自携带原因。
 - `ctx.agentPresets.resolve(id?): Promise<AgentPreset>` 按 id 取一个 preset，缺省取 `defaultId`。没有任何根目录提供该 id 时抛错，并列出可用 id。损坏的 preset 照样解析——删除、读取与上报都需要这一行。
 - `ctx.agentPresets.mount(agentCtx, id?): Promise<AgentPreset>` 用一个 preset 组装一个 agent——确保其常驻挂载（并发去重）并把 agent 的 scope key 认父到它——返回该 preset 供调用方记录。对损坏的 preset 直接以发现时记下的原因拒绝，所以每种不可加载的形态都在加载器介入之前以同一方式失败。
 - `ctx.agentPresets.composeFrom(agentCtx, parentCtx): string | undefined` 让一个 agent 加入另一个 agent 已在运行的常驻组装，返回所加入的 preset id——父方未加入任何 preset 时返回 `undefined`，那是无 roster 的部署，不是错误。这是认父而非挂载，因此同步、且自身没有组装失败模式；调用方用错（上下文无 scope、agent 已加入过）仍会拒绝。
@@ -88,8 +88,11 @@ description: 仅提供持久 bash 与 str_replace_editor 的双工具编码 Agen
 | `default` | 必填 | 调用方未指定时挂载的 preset id |
 | `roots` | `[]` | 按优先级排列的扫描目录；每项提供 `path`（开头的 `~` 会展开）与 `trust`（默认为 `user`） |
 | `includeUserRoot` | `true` | 在全部已配置根目录之后，追加 `<dshHome>/.agent-presets` 作为 `user` 根目录 |
+| `visible` | 省略 | 由 `list()` 发布的 preset id；空列表会隐藏所有由 roster 驱动的界面 |
 
 根目录不存在时视为不提供任何 preset，而非失败：用户根目录在写出第一个本地 preset 之前并不存在，而指定了没有任何根目录提供的默认值，在解析时本就会明确报错。
+
+`visible` 保留发现顺序，并不自行给 roster 排序。非空列表必须包含组装 `default`；省略时发布全部已发现 preset，`[]` 则刻意不发布任何 preset。该策略只改变展示：`resolve()`、挂载、持久化会话恢复与复制冲突检查仍使用完整清单。因此隐藏一个 id 既不会撤销它，也不会删除其文件。
 
 ### 可写根目录属于本包，随附根目录属于 app
 

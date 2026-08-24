@@ -66,7 +66,7 @@ export type AgentPresetSeatProps =
 /**
  * Render the new-session agent-preset chip.
  * @param props - composed slot props.
- * @returns the chip, or null when the deployment composes no presets.
+ * @returns the chip, or null when the deployment publishes no preset choices.
  */
 export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, t }: AgentPresetSeatProps) {
   const state = useAgentPresetSeat(snapshot => snapshot)
@@ -101,8 +101,8 @@ export function AgentPresetSeat({ load, select, introduced, useAgentPresetSeat, 
     return () => { window.clearTimeout(done) }
   }, [state.introduce, ready, label, introduced])
 
-  // Nothing to choose between: the deployment composes no presets and every
-  // session shares the host composition.
+  // Nothing published means no choice, even when sessions still compose from
+  // a hidden deployment default.
   if (!ready) return null
 
   // One wrapper span: the chip is a flex row with a gap, so loose character

@@ -80,7 +80,7 @@ export interface RosterPreset {
 
 /** The roster the host answered with. */
 export interface RosterValue {
-  /** Every preset the deployment composes, in the order the host lists them. */
+  /** Every preset the deployment publishes to roster surfaces, in host order. */
   presets: readonly RosterPreset[]
   /** Whether this browser may author presets at all. */
   authorable: boolean
@@ -206,9 +206,9 @@ export class AgentPresetSettingsController {
   }
 
   /**
-   * Load the roster. An empty roster means the deployment composes no
-   * presets, which is a valid deployment rather than a failure — the row
-   * reports `unavailable` and renders nothing.
+   * Load the roster. An empty roster means the deployment publishes no preset
+   * choices, which is valid rather than a failure — the row reports
+   * `unavailable` and renders nothing.
    * @returns once the snapshot reflects the host.
    */
   async load(): Promise<void> {

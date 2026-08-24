@@ -33,7 +33,7 @@ export type AgentPresetRowProps =
 /**
  * Render the new-session agent-preset selector.
  * @param props - composed slot props.
- * @returns the row, or null when the deployment composes no presets.
+ * @returns the row, or null when the deployment publishes no preset choices.
  */
 export function AgentPresetRow({ load, select, useAgentPreset, t }: AgentPresetRowProps) {
   const state = useAgentPreset(snapshot => snapshot)
@@ -48,8 +48,8 @@ export function AgentPresetRow({ load, select, useAgentPreset, t }: AgentPresetR
     setOpen(false)
   }, [state.status, state.writable])
 
-  // A deployment that composes no presets has nothing to choose between, and
-  // every session shares the host composition — the row simply does not exist.
+  // No published presets means there is nothing to choose between, so the row
+  // does not exist even when sessions still compose from a hidden default.
   if (state.status === 'unavailable') return null
   const busy = state.status === 'loading' || state.status === 'saving'
   // Every preset surface applies the same display-copy rule. The id remains

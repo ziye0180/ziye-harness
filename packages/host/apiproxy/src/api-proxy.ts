@@ -2970,9 +2970,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     },
 
     agentPresets: {
-      // A deployment with no roster answers with an empty list rather than an
-      // error: composing no presets is a valid deployment, and the browser
-      // simply offers no choice.
+      // A missing roster service and a roster publishing no visible ids both
+      // answer with an empty list: the browser simply offers no choice.
       async list(request) {
         const presets = ctx.get('agentPresets')
         if (presets === undefined) return ok(request, { presets: [], authorable: false, hasDocument: false })

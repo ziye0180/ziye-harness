@@ -137,9 +137,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: 'async list(): Promise<AgentPreset[]>',
-        description: 'Every preset the configured roots currently supply.',
+        description: 'Every preset the configured roots currently publish to roster surfaces.\n\nVisibility filters presentation only. Explicit resolution reads the full inventory so a persisted session can restore a composition hidden after its history was recorded.',
         parameters: [],
-        returns: 'the presets, first-root-wins per id.',
+        returns: 'visible presets, first-root-wins per id and in discovery order.',
       },
       {
         signature: 'async resolve(id?: string): Promise<AgentPreset>',

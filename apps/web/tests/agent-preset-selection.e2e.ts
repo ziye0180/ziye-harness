@@ -173,7 +173,11 @@ describe('web e2e: agent-preset selection', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
-      agentPresets: { roots: [{ path: SHIPPED_PRESETS, trust: 'system' }], default: 'standard' },
+      agentPresets: {
+        roots: [{ path: SHIPPED_PRESETS, trust: 'system' }],
+        default: 'standard',
+        visible: ['standard', 'minimal'],
+      },
     })
     // A resumed session runs what it was created with; seeding one that
     // records `minimal` is what makes the header label a claim about the
@@ -205,7 +209,7 @@ describe('web e2e: agent-preset selection', () => {
     expect(snapshot).toContain('Standard mode')
   })
 
-  it('names every preset and what it is for', async () => {
+  it('names only visible presets and what they are for', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-agent-preset-menu'))
     await page.getByRole('button', { name: 'Standard mode' }).click()
     const menu = page.getByRole('menu')
@@ -214,10 +218,11 @@ describe('web e2e: agent-preset selection', () => {
     const snapshot = await captureStableAria(page, '[role="menu"]', scaffold.workspaceCwd)
 
     await compareOrRefreshGolden(MENU_EXPECTED, snapshot, MODE)
-    // Every shipped preset, each with the sentence saying what it composes —
-    // the id alone never said what a preset does.
+    // Visibility is host-owned roster policy rather than a client-side hide:
+    // each included row still carries the sentence saying what it composes.
     expect(snapshot).toContain('Minimal mode')
-    expect(snapshot).toContain('Creator mode')
+    expect(snapshot).not.toContain('PTC mode')
+    expect(snapshot).not.toContain('Creator mode')
     await page.keyboard.press('Escape')
   })
 

@@ -284,6 +284,8 @@ export interface LaunchOptions {
     roots: { path: string; trust: 'system' | 'user' }[]
     /** The preset a session that names none is composed from. */
     default: string
+    /** Preset ids exposed on roster-backed browser surfaces; omitted exposes all. */
+    visible?: string[]
   }
   /**
    * Mount the shipped telemetry row in FULL mode against this exporter URL

@@ -33,7 +33,9 @@ import { discoverPresets, USER_PRESET_DIR } from './discovery.ts'
 import { copyComposition, deleteComposition, readComposition } from './authoring.ts'
 import { mountPreset, serviceForAgent, standingMountFor } from './mount.ts'
 import { PresetExistsError } from './authoring.ts'
-import { PresetMountError, UnknownPresetError, type AgentPreset, type Config, type PresetRoot } from './preset.ts'
+import {
+  PRESET_ID, PresetMountError, UnknownPresetError, type AgentPreset, type Config, type PresetRoot,
+} from './preset.ts'
 import type {} from './types.ts'
 
 /** Settings namespace carrying the user's chosen default preset. */
@@ -90,6 +92,7 @@ export class AgentPresets extends Service {
       trust: z.union(['system', 'user'] as const).default('user'),
     })).default([]),
     includeUserRoot: z.boolean().default(true),
+    visible: z.array(z.string().required().pattern(PRESET_ID)).default(undefined as unknown as string[]),
   }) as z<Config>
 
   /**
@@ -103,6 +106,9 @@ export class AgentPresets extends Service {
    * locally authored directory that claimed its name.
    */
   private readonly resolvedRoots: readonly PresetRoot[]
+
+  /** Ids published by {@link list}, or undefined when every discovered preset is visible. */
+  private readonly visiblePresetIds: ReadonlySet<string> | undefined
 
   /**
    * The user layer over `config.default`, present only while a settings
@@ -129,10 +135,14 @@ export class AgentPresets extends Service {
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'agentPresets')
+    if (config.visible !== undefined && config.visible.length > 0 && !config.visible.includes(config.default)) {
+      throw new Error(`agent-presets: default preset "${config.default}" must be visible when config.visible is non-empty`)
+    }
     this.selfCtx = ctx
     this.resolvedRoots = config.includeUserRoot
       ? [...config.roots, { path: dshHomePath(USER_PRESET_DIR), trust: 'user' }]
       : [...config.roots]
+    this.visiblePresetIds = config.visible === undefined ? undefined : new Set(config.visible)
     // Deliberately not `installSettingsSection`: that helper exists to re-judge
     // what a consumer DERIVED from the source — memoized resolutions,
     // registration-level facts — across attach, detach, and change. Nothing
@@ -193,10 +203,22 @@ export class AgentPresets extends Service {
   }
 
   /**
-   * Every preset the configured roots currently supply.
-   * @returns the presets, first-root-wins per id.
+   * Every preset the configured roots currently publish to roster surfaces.
+   *
+   * Visibility filters presentation only. Explicit resolution reads the full
+   * inventory so a persisted session can restore a composition hidden after
+   * its history was recorded.
+   * @returns visible presets, first-root-wins per id and in discovery order.
    */
   async list(): Promise<AgentPreset[]> {
+    const presets = await this.discoverAll()
+    const visible = this.visiblePresetIds
+    if (visible === undefined) return presets
+    return presets.filter(preset => visible.has(preset.id))
+  }
+
+  /** Every preset the configured roots currently supply, including hidden ids. */
+  private async discoverAll(): Promise<AgentPreset[]> {
     return await discoverPresets(this.resolvedRoots)
   }
 
@@ -212,7 +234,7 @@ export class AgentPresets extends Service {
    */
   async resolve(id?: string): Promise<AgentPreset> {
     const wanted = id ?? this.defaultId
-    const presets = await this.list()
+    const presets = await this.discoverAll()
     const found = presets.find(preset => preset.id === wanted)
     if (found === undefined) {
       throw new UnknownPresetError(wanted, presets.map(preset => preset.id))
@@ -382,7 +404,7 @@ export class AgentPresets extends Service {
     // The roster check refuses ids any root supplies — shipped ones included,
     // since a user directory named like a shipped preset is shadowed by it.
     // The disk check inside copyComposition only sees the writable root.
-    if ((await this.list()).some(preset => preset.id === id)) {
+    if ((await this.discoverAll()).some(preset => preset.id === id)) {
       throw new PresetExistsError(id)
     }
     await copyComposition(this.resolvedRoots, source, id, name)

@@ -389,8 +389,12 @@ Discovery is unmemoized: `list()` and `resolve()` re-read the roots on every cal
 
 ```ts cordis-catalog
 /**
- * Every preset the configured roots currently supply.
- * @returns the presets, first-root-wins per id.
+ * Every preset the configured roots currently publish to roster surfaces.
+ *
+ * Visibility filters presentation only. Explicit resolution reads the full
+ * inventory so a persisted session can restore a composition hidden after
+ * its history was recorded.
+ * @returns visible presets, first-root-wins per id and in discovery order.
  */
 async list(): Promise<AgentPreset[]>
 

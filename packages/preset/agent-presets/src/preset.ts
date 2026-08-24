@@ -48,7 +48,7 @@ export interface PresetRoot {
   trust: PresetTrust
 }
 
-/** Plugin config: which preset is the default, and where presets live. */
+/** Plugin config: which preset is the default, where presets live, and which appear on roster surfaces. */
 export interface Config {
   /** Preset id mounted when a caller names none. Missing at mount time fails loud. */
   default: string
@@ -59,6 +59,14 @@ export interface Config {
    * configured root. False mounts a roster over `roots` alone.
    */
   includeUserRoot: boolean
+  /**
+   * Preset ids published by the roster's `list()`; omitted publishes every
+   * discovered preset and an empty list hides every roster surface. Explicit
+   * resolution still accepts hidden ids so persisted sessions can restore the
+   * composition that produced their history. This is presentation policy, not
+   * an authorization boundary.
+   */
+  visible?: string[]
 }
 
 /**

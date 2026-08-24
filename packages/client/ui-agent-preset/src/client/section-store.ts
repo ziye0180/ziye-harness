@@ -77,7 +77,7 @@ export interface AgentPresetSectionState {
   authorable: boolean
   /** Whether the host can open a preset directory on a native desktop. */
   hasDocument: boolean
-  /** Every preset the deployment currently supplies. */
+  /** Every preset the deployment currently publishes to roster surfaces. */
   rows: readonly PresetRow[]
   /** The open copy dialog, or null. */
   copy: CopyDraft | null
@@ -156,9 +156,9 @@ export class AgentPresetSectionController {
   }
 
   /**
-   * Load the roster. An empty roster means the deployment composes no
-   * presets, which is a valid deployment rather than a failure — the section
-   * reports `unavailable` and renders nothing.
+   * Load the roster. An empty roster means the deployment publishes no preset
+   * rows, which is valid rather than a failure — the section reports
+   * `unavailable` and renders nothing.
    * @returns once the snapshot reflects the host.
    */
   async load(): Promise<void> {

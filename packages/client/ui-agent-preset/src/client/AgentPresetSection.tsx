@@ -173,7 +173,7 @@ function CardDescription({ text }: { text: string }): ReactNode {
 /**
  * Render the Agent presets section content column.
  * @param props - composed slot props.
- * @returns the section, or null when the deployment composes no presets.
+ * @returns the section, or null when the deployment publishes no preset rows.
  */
 export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
   const { useAgentPresetSection, t, load } = props
@@ -188,8 +188,8 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
     void load()
   }, [load])
 
-  // A deployment that composes no presets has nothing to manage: every
-  // session shares the host composition and the page would be an empty list.
+  // No published rows leaves an empty management page, even when sessions
+  // still compose from a hidden deployment default.
   if (state.status === 'unavailable') return null
   if (state.status === 'error') {
     /* v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */

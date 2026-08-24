@@ -54,7 +54,7 @@ Setting the default writes the `agent-presets` settings namespace, which the hos
 
 ## When the surfaces are absent
 
-A deployment that composes no presets answers with an empty roster, and the row, the chip, the label, and the section all render nothing — every session then shares the host composition, and there is nothing to choose between or manage. A deployment that configures no writable root answers `authorable: false`, and the section stays a read-only browser: the shipped compositions still open in the viewer, but every copy action is disabled with the reason as its tooltip rather than offering a dialog whose create always fails.
+An empty published roster makes the default row, new-session chip, and management section render nothing. This covers both a deployment with no roster service and one whose visibility policy deliberately publishes no choices; a session that records a hidden preset still shows its id in the read-only header label. A non-empty filtered roster exposes only its published rows, so hidden user presets are managed through their files or after the deployment publishes them again. A deployment that configures no writable root answers `authorable: false`, and the section stays a read-only browser: the visible shipped compositions still open in the viewer, but every copy action is disabled with the reason as its tooltip rather than offering a dialog whose create always fails.
 
 ## Model Experience
 

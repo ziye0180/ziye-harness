@@ -8,10 +8,10 @@ The mechanism is two seams. Entry contexts chain to the context a subtree was pl
 
 ## Service: `AgentPresets` (ctx key: `agentPresets`)
 
-Discovery is unmemoized: `list()` and `resolve()` re-read the roots on every call, so a preset authored while the process runs is visible immediately and a deleted one disappears from the next read. Discovery also owns preset **health**: a directory whose composition is missing or unloadable (unparsable YAML — checked with the loader's own dialect, `!!js` included — or not a list of named plugin rows) is listed with a `broken` reason rather than skipped, because a skipped directory would still occupy its id on disk while every surface shows nothing to delete. A directory whose name is not a usable preset id (`[a-z0-9][a-z0-9-]*`) is skipped outright: no copy could ever claim it.
+Discovery is unmemoized: `list()` and `resolve()` re-read the roots on every call, so a preset authored while the process runs is immediately available and a deleted one disappears from the next read. `list()` then applies the deployment's optional visibility policy; `resolve()` retains the complete discovered inventory so recorded sessions survive a later presentation change. Discovery also owns preset **health**: a directory whose composition is missing or unloadable (unparsable YAML — checked with the loader's own dialect, `!!js` included — or not a list of named plugin rows) is listed with a `broken` reason rather than skipped, because a skipped directory would still occupy its id on disk while every surface shows nothing to delete. A directory whose name is not a usable preset id (`[a-z0-9][a-z0-9-]*`) is skipped outright: no copy could ever claim it.
 
 - `ctx.agentPresets.defaultId: string` The preset id mounted when a caller names none.
-- `ctx.agentPresets.list(): Promise<AgentPreset[]>` Every preset the configured roots currently supply, earlier root winning a duplicate id; broken presets included, each carrying its reason.
+- `ctx.agentPresets.list(): Promise<AgentPreset[]>` Every preset the configured roots currently publish to roster surfaces, earlier root winning a duplicate id; broken visible presets included, each carrying its reason.
 - `ctx.agentPresets.resolve(id?): Promise<AgentPreset>` One preset by id, defaulting to `defaultId`. Throws naming the available ids when no root supplies it. A broken preset resolves — deleting, reading, and reporting one all need the row.
 - `ctx.agentPresets.mount(agentCtx, id?): Promise<AgentPreset>` Compose one agent from a preset — ensure its standing mount (single-flight) and parent the agent's scope key to it — returning the preset for the caller to record. Refuses a broken preset up front with its discovery-reported reason, so every unloadable shape fails the same way before the loader is involved.
 - `ctx.agentPresets.composeFrom(agentCtx, parentCtx): string | undefined` Join one agent to the standing composition another already runs on, returning the preset id joined — `undefined` when the parent joined none, which is the rosterless deployment and not an error. A bind rather than a mount, so it is synchronous and has no composition failure mode; it still rejects a caller error (an unscoped context, or an agent that already joined).
@@ -88,8 +88,11 @@ Every read failure degrades to no metadata — absent, malformed, wrongly typed,
 | `default` | required | Preset id mounted when a caller names none |
 | `roots` | `[]` | Scanned directories in precedence order; each supplies `path` (a leading `~` expands) and `trust` (defaults to `user`) |
 | `includeUserRoot` | `true` | Append `<dshHome>/.agent-presets` as a `user` root, after every configured root |
+| `visible` | omitted | Preset ids published by `list()`; an empty list hides every roster-backed surface |
 
 An absent root supplies no presets rather than failing: the user root does not exist until the first locally authored preset, and naming a default no root supplies already fails loud at resolution.
+
+`visible` preserves discovery order rather than ordering the roster itself. A non-empty list must contain the composition `default`; omission publishes every discovered preset, while `[]` deliberately publishes none. The policy changes presentation only: `resolve()`, mounting, persisted-session recovery, and copy collision checks retain the complete inventory. Hiding an id therefore neither revokes it nor deletes its files.
 
 ### The writable root is this package's, the shipped root is the app's
 
