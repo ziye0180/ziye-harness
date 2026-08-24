@@ -10,7 +10,7 @@
 // open llm seam.
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import type { Browser, Page } from 'playwright'
+import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { join } from 'node:path'
@@ -23,11 +23,20 @@ import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/settings-chrome', import.meta.url))
 const DIALOG_EXPECTED = join(SNAPSHOT_DIR, 'dialog.expected.md')
+const LUCIDE_ICONS_EXPECTED = join(SNAPSHOT_DIR, 'lucide-icons.expected.md')
 const PLUGINS_EXPECTED = join(SNAPSHOT_DIR, 'plugins.expected.md')
 // The English fallback surface: a browser naming no shipped language.
 const DIALOG_EN_EXPECTED = join(SNAPSHOT_DIR, 'dialog-en.expected.md')
 const PLUGIN_ROW_SELECTOR = '[data-plugin-entry$="ui-settings"]'
 const MODE = webSnapshotMode()
+
+/** Stable Lucide glyph classes rendered under one assembled surface. */
+async function lucideIconSnapshot(root: Locator): Promise<string> {
+  const names = await root.locator('svg.lucide').evaluateAll(elements => [...new Set(
+    elements.flatMap(element => [...element.classList].filter(name => name.startsWith('lucide-'))),
+  )].sort())
+  return names.map(name => `- ${name}`).join('\n')
+}
 
 describe('web e2e: settings modal and General preferences', () => {
   let scaffold: WebScaffold
@@ -92,6 +101,9 @@ describe('web e2e: settings modal and General preferences', () => {
     // Golden of the freshly opened dialog (default zh, General active).
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(DIALOG_EXPECTED, snapshot, MODE)
+    const iconSnapshot = await lucideIconSnapshot(dialog)
+    expect(iconSnapshot).not.toBe('')
+    await compareOrRefreshGolden(LUCIDE_ICONS_EXPECTED, iconSnapshot, MODE)
     // Section switch: aria-current moves (the Models page itself has its own scenario file).
     await dialog.getByRole('button', { name: '模型' }).click()
     await expect.poll(() => dialog.getByRole('button', { name: '模型' }).getAttribute('aria-current'), { timeout: 5_000 }).toBe('true')
@@ -524,6 +536,11 @@ describe('web e2e: settings modal and General preferences', () => {
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['dialog-en.expected.md', 'dialog.expected.md', 'plugins.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'dialog-en.expected.md',
+      'dialog.expected.md',
+      'lucide-icons.expected.md',
+      'plugins.expected.md',
+    ])
   })
 })

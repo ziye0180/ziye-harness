@@ -15,12 +15,16 @@ const icons = Object.fromEntries(
 ) as Record<string, (p: primitives.IconProps) => React.JSX.Element>
 const iconNames = Object.keys(icons)
 
-describe('ic_ds_ icon set', () => {
-  it('exports the full icon set (46 deepsuite + 20 figma extracts + four product glyphs outside those sets)', () => {
+const CUSTOM_GLYPHS = new Set(['IconTreeCorner8x10'])
+const lucideIconNames = iconNames.filter(name => !CUSTOM_GLYPHS.has(name))
+
+describe('Lucide-backed icon set', () => {
+  it('preserves all 70 public icon exports while replacing 69 semantic glyphs', () => {
     expect(iconNames.length).toBe(70)
+    expect(lucideIconNames.length).toBe(69)
   })
 
-  it.each(iconNames)('%s renders an svg with currentColor fills and no hardcoded palette', (name) => {
+  it.each(iconNames)('%s renders an svg with currentColor and no hardcoded palette', (name) => {
     const Icon = icons[name]!
     const { container } = render(<Icon />)
     const svg = container.querySelector('svg')
@@ -28,6 +32,28 @@ describe('ic_ds_ icon set', () => {
     const markup = container.innerHTML
     expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}"/)
     expect(markup).toContain('currentColor')
+  })
+
+  it.each(lucideIconNames)('%s delegates its glyph to Lucide', (name) => {
+    const Icon = icons[name]!
+    const { container } = render(<Icon />)
+
+    expect(container.querySelector('svg')?.classList.contains('lucide')).toBe(true)
+  })
+
+  it.each(lucideIconNames)('%s preserves the existing accessibility-tree visibility', (name) => {
+    const Icon = icons[name]!
+    const { container } = render(<Icon />)
+
+    expect(container.querySelector('svg')?.getAttribute('aria-hidden')).toBe('false')
+  })
+
+  it('keeps the session-tree connector as exact product geometry', () => {
+    const { container } = render(<primitives.IconTreeCorner8x10 />)
+    const svg = container.querySelector('svg')!
+
+    expect(svg.classList.contains('lucide')).toBe(false)
+    expect(svg.getAttribute('viewBox')).toBe('-0.5 0 8.5 10.5')
   })
 
   it('size and className props land on the root svg', () => {
