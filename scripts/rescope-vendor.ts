@@ -76,6 +76,13 @@ interface GenericSkip {
   readonly upstream: readonly string[]
 }
 
+/** One exact quoted subpath that is product data, not a package specifier. */
+interface GenericTokenSkip {
+  readonly file: string
+  readonly upstream: string
+  readonly subpath: string
+}
+
 const GENERIC_SKIPS: readonly GenericSkip[] = [
   // `Symbol.for('schemastery')` and the `vendor:` metadata field are upstream identifiers.
   { file: 'vendor/schemastery/src/index.ts', upstream: ['schemastery'] },
@@ -132,6 +139,15 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   { file: 'packages/extensions/ui-cordis/src/client/CordisPanel.tsx', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/CordisRunRow.tsx', upstream: ['cordis'] },
   { file: 'packages/extensions/ui-cordis/src/client/locales.ts', upstream: ['cordis'] },
+]
+
+// Inspector's observation topic is a wire id. Keep the exact token while
+// allowing a real `cordis` import in the same file to follow the package map.
+const GENERIC_TOKEN_SKIPS: readonly GenericTokenSkip[] = [
+  { file: 'packages/experimental/inspector/src/shared/bridge/messages/cordis.ts', upstream: 'cordis', subpath: '/tree' },
+  { file: 'packages/experimental/inspector/tests/cordis-query.host.spec.ts', upstream: 'cordis', subpath: '/tree' },
+  { file: 'packages/experimental/inspector/tests/cordis-tree.host.spec.ts', upstream: 'cordis', subpath: '/tree' },
+  { file: 'packages/experimental/inspector/tests/plugin.client.spec.ts', upstream: 'cordis', subpath: '/tree' },
 ]
 
 /** A string that must appear exactly `count` times once the rescope has run. */
@@ -255,15 +271,15 @@ const EXACT_EDITS: readonly ExactEdit[] = [
     // A plain fence listing the bundle's mounted tree: a bare token, no quotes.
     id: 'agent-spine-demo-mounted-tree',
     file: 'packages/examples/agent-spine-demo/README.md',
-    find: '@cordisjs/plugin-timer            timer service',
-    replace: '@deepseek-ai/cordis-plugin-timer  timer service',
+    find: '@cordisjs/plugin-timer                timer service (writes nothing to stdout)',
+    replace: '@deepseek-ai/cordis-plugin-timer      timer service (writes nothing to stdout)',
     expect: 1,
   },
   {
     id: 'agent-spine-demo-mounted-tree-zh',
     file: 'packages/examples/agent-spine-demo/README.zh.md',
-    find: '@cordisjs/plugin-timer            timer service',
-    replace: '@deepseek-ai/cordis-plugin-timer  timer service',
+    find: '@cordisjs/plugin-timer                timer service (writes nothing to stdout)',
+    replace: '@deepseek-ai/cordis-plugin-timer      timer service (writes nothing to stdout)',
     expect: 1,
   },
   {
@@ -306,30 +322,30 @@ const VENDORED_LIBRARY = /^@deepseek-ai\\/(cosmokit|schemastery)(\\/|$)/
     // paragraph above the invariant that says to rescope it.
     id: 'vendoring-cookbook-tree-comment',
     file: 'docs/cookbook/adding-a-vendored-package.md',
-    find: '  package.json     # from upstream; set "private": true, keep name/exports/type',
-    replace: '  package.json     # from upstream; set "private": true, rescope the name, keep exports/type',
+    find: '  package.json     # from upstream; keep name/exports/type (publishable release member, no private flag)',
+    replace: '  package.json     # from upstream; rescope the name, keep exports/type (publishable release member, no private flag)',
     expect: 1,
   },
   {
     id: 'vendoring-cookbook-tree-comment-zh',
     file: 'docs/cookbook/adding-a-vendored-package.zh.md',
-    find: '  package.json     # from upstream; set "private": true, keep name/exports/type',
-    replace: '  package.json     # from upstream; set "private": true, rescope the name, keep exports/type',
+    find: '  package.json     # from upstream; keep name/exports/type (publishable release member, no private flag)',
+    replace: '  package.json     # from upstream; rescope the name, keep exports/type (publishable release member, no private flag)',
     expect: 1,
   },
   {
     // The checklist told the next vendoring to keep upstream's name.
     id: 'vendoring-cookbook-name-invariant',
     file: 'docs/cookbook/adding-a-vendored-package.md',
-    find: "keep upstream's `name`/`version`/`exports`/`type`",
-    replace: "rescope the `name` ([mapping](../rescope.md)) while keeping upstream's `version`/`exports`/`type`",
+    find: "keep upstream's `name`/`exports`/`type`",
+    replace: "rescope the `name` ([mapping](../rescope.md)) while keeping upstream's `exports`/`type`",
     expect: 1,
   },
   {
     id: 'vendoring-cookbook-name-invariant-zh',
     file: 'docs/cookbook/adding-a-vendored-package.zh.md',
-    find: '保留上游的 `name`/`version`/`exports`/`type`',
-    replace: '改写 `name` 的 scope（[映射](../rescope.zh.md)），保留上游的 `version`/`exports`/`type`',
+    find: '保留上游的 `name`/`exports`/`type`',
+    replace: '改写 `name` 的 scope（[映射](../rescope.zh.md)），保留上游的 `exports`/`type`',
     expect: 1,
   },
   {
@@ -499,14 +515,32 @@ function skipped(file: string, pattern: Pattern): boolean {
   return GENERIC_SKIPS.some(skip => skip.file === file && skip.upstream.includes(pattern.upstream))
 }
 
+function tokenSkipped(file: string, pattern: Pattern, subpath: string): boolean {
+  return GENERIC_TOKEN_SKIPS.some(skip => skip.file === file
+    && skip.upstream === pattern.upstream && skip.subpath === subpath)
+}
+
 function rewriteLine(line: string, file: string, all: readonly Pattern[]): string {
   let out = line
   for (const pattern of all) {
     if (skipped(file, pattern)) continue
-    out = out.replace(pattern.token, (_match, quote: string, subpath: string) => `${quote}${pattern.to}${subpath}${quote}`)
+    out = out.replace(pattern.token, (match, quote: string, subpath: string) => tokenSkipped(file, pattern, subpath)
+      ? match
+      : `${quote}${pattern.to}${subpath}${quote}`)
     out = out.replace(pattern.yamlName, (_match, prefix: string, suffix: string) => `${prefix}${pattern.to}${suffix}`)
   }
   return out
+}
+
+/**
+ * Rewrite one source line with the repository's rescope mapping.
+ * @param line - complete source line.
+ * @param file - repository-relative owner path.
+ * @param reverse - whether to map scoped names back to upstream names.
+ * @returns the rewritten line.
+ */
+export function rewriteRescopeLine(line: string, file: string, reverse = false): string {
+  return rewriteLine(line, file, patterns(reverse))
 }
 
 /**
@@ -582,6 +616,18 @@ export function exactEditState(text: string, find: string, replace: string, expe
   }
   if (hits === 0 && landed === expect) return 'applied'
   return hits === expect && landed === 0 ? 'pending' : 'invalid'
+}
+
+/**
+ * Classify one named exact edit against the checked-in repository state.
+ * @param id - exact-edit identifier from the rescope mapping.
+ * @returns whether the checked-in target is pending, applied, or invalid.
+ */
+export function checkedInExactEditState(id: string): ExactEditState {
+  const edit = EXACT_EDITS.find(candidate => candidate.id === id)
+  if (edit === undefined) throw new Error(`unknown rescope exact edit: ${id}`)
+  const text = readFileSync(resolve(root, edit.file), 'utf8')
+  return exactEditState(text, edit.find, edit.replace, edit.expect)
 }
 
 function main(): void {
