@@ -175,25 +175,6 @@ describe('client slot projection', () => {
     expect(entry?.example).toContain("ctx.slots.inject('demo.seat'")
     expect(entry?.example).toContain("id: 'my-entry'")
   })
-
-  it('keeps text-only and document-title examples within their owner semantics', () => {
-    const entries = resolveSlotEntries([
-      declaration({ key: 'conversation.hero.brand.headline' }),
-      declaration({ key: 'conversation.hero.brand.badge' }),
-      declaration({ key: 'shell.document-title' }),
-    ], [], OWNER_TYPES, kits)
-    const headline = entries.find(entry => entry.key === 'conversation.hero.brand.headline')
-    const badge = entries.find(entry => entry.key === 'conversation.hero.brand.badge')
-    const title = entries.find(entry => entry.key === 'shell.document-title')
-    expect(headline?.example).toContain("() => 'My product headline'")
-    expect(badge?.example).toContain("className: 'my-brand-badge'")
-    expect(headline?.example).not.toContain("React.createElement('div'")
-    expect(badge?.example).not.toContain("React.createElement('div'")
-    expect(title?.example).toContain('React.useEffect')
-    expect(title?.example).toContain('document.title')
-    expect(title?.example).toContain("return () => { document.title = 'My Product' }")
-    expect(title?.example).toContain('return null')
-  })
 })
 
 describe('the per-slot report budget', () => {

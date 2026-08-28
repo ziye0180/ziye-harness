@@ -42,7 +42,7 @@ const MAX_DECL_CHARS = 1200
 /**
  * Line budget for ONE slot's expanded report. The whole point of narrowing to a
  * single slot is to spend less context, so a report a model cannot finish
- * reading is a defect rather than a detail. Today's widest slot renders 60
+ * reading is a defect rather than a detail. The widest measured slot renders 60
  * lines, so this leaves room to document a slot properly while catching the two
  * ways a report runs away: an owner share that hands down a subsystem instead of
  * a share, and prose that grew into a manual.
@@ -334,34 +334,17 @@ function keyDomainOf(declaration: SlotDeclaration, occupants: readonly SlotRegis
 /** A runnable minimal registration for one slot, per cardinality. */
 function exampleOf(declaration: SlotDeclaration): string {
   const options = [`name: '${declaration.key}'`, ...KIND_EXAMPLE[declaration.kind] ?? []].join(', ')
-  const component = SLOT_EXAMPLE_COMPONENT[declaration.key]
-    ?? "() => React.createElement('div', null, 'hello')"
   return [
     'return {',
     "  inject: ['slots'],",
     '  apply(ctx) {',
     `    ctx.slots.inject('${declaration.key}', () => ctx.slots.register(`,
     `      { ${options} },`,
-    `      ${component.replace(/\n/g, '\n      ')},`,
+    "      () => React.createElement('div', null, 'hello'),",
     '    ))',
     '  },',
     '}',
   ].join('\n')
-}
-
-/** Slot-specific components for seats whose semantics cannot use generic visible markup. */
-const SLOT_EXAMPLE_COMPONENT: Readonly<Record<string, string>> = {
-  'conversation.hero.brand.headline': "() => 'My product headline'",
-  'conversation.hero.brand.badge': "() => React.createElement('span', { className: 'my-brand-badge' }, 'Preview')",
-  'shell.document-title': [
-    '({ title }) => {',
-    '  React.useEffect(() => {',
-    "    document.title = title === undefined ? 'My Product' : `${title} — My Product`",
-    "    return () => { document.title = 'My Product' }",
-    '  }, [title])',
-    '  return null',
-    '}',
-  ].join('\n'),
 }
 
 /** Extra example options per cardinality. */
@@ -569,7 +552,6 @@ export function main(): void {
   console.log(`gen-client-catalog: wrote ${OUT}.`)
 }
 
-// Run only when invoked as a script, not when imported by a test.
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   main()
 }

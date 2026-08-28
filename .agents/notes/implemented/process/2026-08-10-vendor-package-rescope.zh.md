@@ -28,6 +28,8 @@ Status: implemented
 
 Token 规则看不见两类点位，它们按名字逐处改：一是属性访问 `manifest.peerDependencies?.cordis`——TypeScript 抓不到过期的 `Record<string, string>` 键；二是把名字当数据的常量（`check-workspace-constraints.ts` 的 vendored 集合、`verify-cordis-config.ts` 的 group/include 名、`cordis-walk.ts` 与 `gen-scoped-events.ts` 与 typert `analyzer.ts` 里识别 `declare module` 目标的字符串、`app-boot/tsdown.config.ts` 的 `alwaysBundle`）。
 
+形似包子路径的引号产品标识按精确文件与子路径 token 豁免，不按整文件豁免。Inspector 的观察 topic `cordis/tree` 使用这条规则，因此同一源码里的真实 `cordis` import 仍会跟随包名映射。
+
 Markdown 按「读者拿它做什么」一分为二。围栏一律跟着改，不看 info string——围栏里是读者要照抄的代码或要挂载的配置，包括写着 Loader 插件名的 `yaml` 围栏和紧邻编译围栏的 `ts ignore-check` 围栏。散文只在 `docs/` 下跟着改：教程里引用某个名字的句子，教的是本仓已不解析的东西。`docs/` 之外的散文——`vendor/*/README.md`、各包 README、`.agents/notes/`——保留写作当时的名字：既因为它记录的是当时的事实，也因为同一个拼写可能指别的东西，比如 Python SDK 的 `cordis` 选项、我们没 vendor 的 `@cordisjs/plugin-http`，或某个 agent-preset 的 id。
 
 ## 影响

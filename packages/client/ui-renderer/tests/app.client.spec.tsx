@@ -20,8 +20,9 @@ async function bench() {
 }
 
 describe('buildRenderApp', () => {
-  it('fails loud when the sessions service is unavailable', () => {
-    expect(() => buildRenderApp({ ctx: new Context() })).toThrow('sessions service unavailable')
+  it('fails loud when the slot registry is unavailable', () => {
+    const renderApp = buildRenderApp({ ctx: new Context() })
+    expect(() => renderApp()).toThrow()
   })
 
   it('renders the root slot tree', async () => {
@@ -29,4 +30,5 @@ describe('buildRenderApp', () => {
     const view = render(<>{b.renderApp()}</>)
     expect(view.getByTestId('frame')).toBeTruthy()
   })
+
 })

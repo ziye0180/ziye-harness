@@ -15,7 +15,7 @@ import type { ReactNode } from 'react'
 import {
   Button, IconBrowseOutline16, IconCopyOutline16, IconFolderOpenOutline16, IconPlusOutline16, IconTrashOutline16, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { draftBlocker, type AgentPresetSectionState } from './section-store.ts'
 import { presetDisplayText, type AgentPresetSettingsKey } from './locales.ts'
@@ -173,7 +173,7 @@ function CardDescription({ text }: { text: string }): ReactNode {
 /**
  * Render the Agent presets section content column.
  * @param props - composed slot props.
- * @returns the section, or null when the deployment publishes no preset rows.
+ * @returns the section, or null when the deployment composes no presets.
  */
 export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
   const { useAgentPresetSection, t, load } = props
@@ -188,8 +188,8 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
     void load()
   }, [load])
 
-  // No published rows leaves an empty management page, even when sessions
-  // still compose from a hidden deployment default.
+  // A deployment that composes no presets has nothing to manage: every
+  // session shares the host composition and the page would be an empty list.
   if (state.status === 'unavailable') return null
   if (state.status === 'error') {
     /* v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */
@@ -221,7 +221,6 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
           props.close()
         }}
       >
-        {/* Same glyph as the Models page's add affordances. */}
         <IconPlusOutline16 size={14} />
         {t('creatorDraft')}
       </button>
@@ -257,23 +256,45 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
                       common act, so it should not hide behind a small button.
                       The action row sits outside it — nesting buttons is
                       invalid, and these act on the card rather than select it.
-                      A broken preset cannot compose a session, so its body is
-                      disabled and the card says why instead of offering it. */}
+                      A broken preset cannot compose a session, so its body
+                      refuses the pick; the reason rides the badge rather than
+                      the card face, which stays the preset's own
+                      description. */}
                     <button
                       type="button"
                       className={css.cardMain}
                       aria-pressed={row.isDefault}
-                      disabled={row.isDefault || row.broken !== undefined}
+                      // Broken says so through `aria-disabled` rather than
+                      // `disabled`, which would take the card out of the tab
+                      // order. With the reason moved onto the badge, that is
+                      // the only way anyone without a pointer reaches it.
+                      disabled={row.isDefault}
+                      aria-disabled={row.broken !== undefined}
                       // Without this the name is the whole card read aloud —
                       // title, badge, description, id.
                       aria-label={`${row.broken !== undefined ? t('brokenBadge') : row.isDefault ? t('inUse') : t('setDefault')}: ${text.name}`}
-                      title={row.broken ?? (row.isDefault ? t('inUse') : t('setDefault'))}
-                      onClick={() => { void props.makeDefault(row.id) }}
+                      // The reason rides the badge, not the whole card: two
+                      // tooltips over one target would race, and the card's
+                      // own label answers what clicking it would do.
+                      title={row.broken !== undefined ? t('brokenBadge') : row.isDefault ? t('inUse') : t('setDefault')}
+                      onClick={() => {
+                        if (row.broken !== undefined) return
+                        void props.makeDefault(row.id)
+                      }}
                     >
                       <span className={css.cardHead}>
                         <span className={css.cardName}>{text.name}</span>
                         {row.broken !== undefined
-                          ? <span className={css.brokenBadge}>{t('brokenBadge')}</span>
+                          ? (
+                            <span className={css.brokenBadge}>
+                              {t('brokenBadge')}
+                              {/* Pointer-only, hence `aria-hidden`: the same
+                                reason reaches assistive technology through the
+                                alert below, and a second copy inside the card's
+                                own text would be read out twice. */}
+                              <span className={css.brokenTip} aria-hidden="true">{row.broken}</span>
+                            </span>
+                          )
                           : null}
                         <span className={css.badge}>
                           {row.trust === 'user' ? t('userTrust') : t('builtIn')}
@@ -281,6 +302,10 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
                         {row.isDefault ? <span className={css.inUse}>{t('inUse')}</span> : null}
                       </span>
                       <CardDescription text={text.description ?? t('noDescription')} />
+                      {/* Visually hidden, deliberately: the pointer path is the
+                        badge's tooltip, and a disabled card body is out of the
+                        tab order, so this is the only reading a screen reader
+                        or a keyboard-only user gets. */}
                       {row.broken === undefined
                         ? null
                         : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}

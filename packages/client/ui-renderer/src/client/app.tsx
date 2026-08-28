@@ -4,11 +4,10 @@
  */
 import type { ReactNode } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-client-runtime/client'
 
 /** Inputs available after the UI renderer's inject set activates. */
 export interface AssemblyDeps {
-  /** Client context carrying the slots and sessions services. */
+  /** Client context carrying the renderer-owned Slot registry. */
   ctx: Context
 }
 
@@ -19,6 +18,5 @@ export interface AssemblyDeps {
  */
 export function buildRenderApp(deps: AssemblyDeps): () => ReactNode {
   const { ctx } = deps
-  if (ctx.get('sessions') === undefined) throw new Error('ui renderer: sessions service unavailable')
   return () => ctx.slots.renderSlot('root', {})
 }

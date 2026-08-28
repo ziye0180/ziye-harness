@@ -1,9 +1,0 @@
-- lucide-chevron-down
-- lucide-database
-- lucide-monitor-cog
-- lucide-moon
-- lucide-settings
-- lucide-sliders-horizontal
-- lucide-sun
-- lucide-workflow
-- lucide-x

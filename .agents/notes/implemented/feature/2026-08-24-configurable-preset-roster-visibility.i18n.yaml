@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-24-configurable-preset-roster-visibility.md
-2026-08-24-configurable-preset-roster-visibility.md: f1cd6482d1d70f33de8b155c57755f342423cc39
-2026-08-24-configurable-preset-roster-visibility.zh.md: baf7841fecac1435b2af73ff33061f4c9f4b1663

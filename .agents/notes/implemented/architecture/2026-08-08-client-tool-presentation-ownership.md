@@ -16,11 +16,7 @@ Tool is a first-class Client UI presentation concept. `@deepseek-ai/dsh-client-u
 
 Conversation data assembly follows the later [Conversation business-node decision](2026-08-09-client-conversation-node-assembly.md). The `ui-conversation` Tool Definition pairs root call/result Session Events, folds Code Dispatch edges into recursive `ToolCallBlock.subCalls`, and emits one stable `tool-call` Chat Node. This data responsibility handles only official Tool identity and topology; it does not interpret presentation for concrete Tool names.
 
-[`ChatView`](../../../../packages/client/ui-conversation/src/client/chat/ChatView.tsx) only places generic [`ChatNodeSeat`](../../../../packages/client/ui-conversation/src/client/chat/ChatNodeSeat.tsx) entries in Chat snapshot `order`. A Seat dispatches `'conversation.chat.node'` by `node.kind`; [`ui-tool`](../../../../packages/client/ui-tool/src/client/apply.ts) registers the `tool-call` entry, and [`ToolCallTree`](../../../../packages/client/ui-tool/src/client/tool/ToolCallTree.tsx) recursively traverses the root block. Every root or child level dispatches through the same keyed/session `'tool.call.toolview'` child slot with `entryKey: toolName`, falling back to `GenericToolCard` when no registration exists.
-
-`ToolCallTree` renders a block with descendants as one collapsed activity group. Expanding the group mounts the root atomic view and recursively grouped children; selecting a descendant expands its ancestor groups. Atomic renderers remain unaware of root/subcall placement, and every mounted atomic call still uses the same keyed slot.
-
-The Host API proxy computes `presentCall` and `presentResult` views for both root Tool events and Code Dispatch events when it builds live or history Web frames. `ui-conversation` carries those envelope views into child `ToolCallBlock` values. The Session events retain arguments and results only, so replay recomputes current presentation without a UI format in the durable log.
+[`ChatView`](../../../../packages/client/ui-chat/src/client/chat/ChatView.tsx) only places generic [`ChatNodeSeat`](../../../../packages/client/ui-chat/src/client/chat/ChatNodeSeat.tsx) entries in Chat snapshot `order`. A Seat dispatches `'conversation.chat.node'` by `node.kind`; [`ui-tool`](../../../../packages/client/ui-tool/src/client/apply.ts) registers the `tool-call` entry, and [`ToolCallTree`](../../../../packages/client/ui-tool/src/client/tool/ToolCallTree.tsx) recursively traverses the root block. Every root or child level dispatches through the same keyed/session `'tool.call.toolview'` child slot with `entryKey: toolName`, falling back to `GenericToolCard` when no registration exists.
 
 A business Tool plugin receives one standard `ToolCallBlock`, identity, workspace cwd, and host actions; it does not read Session, Context, or the Conversation assembler. Skill remains an ordinary Tool and uses the same keyed-slot registration path as other business Tools.
 
@@ -30,11 +26,10 @@ The details panel is a second Tool presentation point, not the call-tree owner. 
 
 ```text
 Session Event window
-  -> Host Web frame presenter projection
   -> Tool Definition -> tool-call Chat Node (recursive ToolCallBlock)
   -> ChatView -> ChatNodeSeat(entryKey = tool-call)
   -> ToolCallTree
-       -> collapsed activity group for a block with subCalls[]
+       -> root/subCalls[] recursion
        -> tool.call.toolview(entryKey = toolName)
             |- registered atomic view
             `- GenericToolCard fallback
@@ -44,7 +39,6 @@ Session Event window
 
 | Owner | Owns | Explicitly does not own |
 |---|---|---|
-| Host API proxy | Presenter execution for root and Code Dispatch Web frames, with soft generic fallback | Durable Tool facts, Client layout |
 | Client Runtime Conversation engine | Context identity, Location, history replay, view Node publication | Tool event meaning, call tree, Tool renderer |
 | `ui-conversation` Tool Definition | call/result pairing, Code Dispatch topology, running/settled/interrupted `ToolCallBlock`, Chat ordering anchor | Tool-name dispatch, card models, recursive React structure |
 | `ui-conversation` Chat view | keyed Node order, scroll anchors, selection, and host actions | Tool lifecycle, subcall composition, atomic Tool renderers |
@@ -53,7 +47,7 @@ Session Event window
 
 ## Verification
 
-Host API tests pin presenter projection for root and Code Dispatch live/history frames. `ui-conversation` tests pin call/result pairing, Code Dispatch views, interruption, and running-to-settled keyed identity without importing production `ui-tool` renderers. `ui-tool` tests mount the real conversation host and pin collapsed activity groups, recursive expansion, keyed dispatch, Generic fallback, selection, details, and concrete Tool cards. Assembled Web tests cover the path with all owners loaded.
+`ui-conversation` tests pin the Tool Definition's call/result pairing, Code Dispatch, interruption, and running-to-settled keyed identity without importing production `ui-tool` renderers. `ui-tool` tests mount the real conversation host and pin root/subcall recursion, keyed dispatch, Generic fallback, selection, details, and concrete Tool cards. Assembled Web tests cover the path with both plugins loaded.
 
 ## Alternatives considered
 
@@ -65,14 +59,10 @@ Host API tests pin presenter projection for root and Code Dispatch live/history 
 
 **Let every atomic Tool renderer recurse through its subcalls.** Rejected: an atomic registrant should understand one Tool call without knowing whether it is a root or child. `ToolCallTree` handles recursive structure once.
 
-**Keep every subcall permanently visible.** Rejected: a composite call duplicates its root and every implementation detail in the primary conversation flow. A collapsed activity group preserves progress and failure state while making the recursive calls available on demand.
-
-**Persist presenter views in Code Dispatch Session events.** Rejected: presenter output is Client-facing and can evolve independently from durable Tool facts. The Host already computes presenter views for Web frames, so Code Dispatch uses the same projection path without changing the log format.
-
 **Let `ui-conversation` import `ui-tool` components directly.** Rejected: this would reverse the feature dependency and make Tool presentation mandatory. Slots preserve independent loading, lifecycle, and fallback behavior.
 
 ## Consequences
 
-`ui-conversation` no longer depends on presentation for concrete Tool names, and root and subcalls cannot drift onto different dispatch paths. Composite work occupies one compact conversation row until expanded, generic presenter copy replaces raw-argument summaries, and historical Code Dispatch views reflect the currently installed Tool definitions. Business packages can independently own atomic Tool renderers; if `ui-tool` is absent, Conversation data assembly remains valid and details retain raw results.
+`ui-conversation` no longer depends on presentation for concrete Tool names, and root and subcalls cannot drift onto different dispatch paths. Business packages can independently own atomic Tool renderers; if `ui-tool` is absent, Conversation data assembly remains valid, Chat Nodes use the generic fallback, and details retain raw results.
 
 The cost is an explicit dependency from `ui-tool` on the business Node slot and locale namespace declared by conversation, plus one Tool-specific child slot. Tool Definition remains in `ui-conversation` because this change does not split packages; it can later move through the Conversation registry seam without changing the presentation ownership recorded here.
