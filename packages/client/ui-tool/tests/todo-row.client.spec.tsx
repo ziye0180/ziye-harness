@@ -2,7 +2,8 @@
 /** todo_write atomic Tool presentation and its plan-summary model. */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { TodoItem, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
+import type { TodoItem } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ToolResultNode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { TodoRow, todoToolview } from '../src/client/tool/toolviews/todo-row.tsx'
@@ -61,7 +62,7 @@ describe('planSummary', () => {
 const resultNode = (argsRaw: string, over?: Partial<ToolResultNode>): ToolResultNode => ({
   kind: 'tool-result', seq: 10, time: 2_000, callTime: 1_000, callId: 'c1',
   call: { name: 'todo_write', argsRaw },
-  content: [], isError: false, callView: null, resultView: null, subCalls: [], ...over,
+  content: [], isError: false, subCalls: [], ...over,
 })
 
 function rowProps(block: unknown): TodoRowProps {
@@ -93,7 +94,7 @@ describe('TodoRow', () => {
 
   it('omits the active clause when no item is in progress and reads running-call args', () => {
     const args = JSON.stringify({ todos: [{ content: 'x', status: 'completed' }] })
-    render(<TodoRow {...rowProps({ callId: 'c1', name: 'todo_write', argsRaw: args, turn: 1, step: 1, time: 1_000, callView: null })} />)
+    render(<TodoRow {...rowProps({ callId: 'c1', name: 'todo_write', argsRaw: args, turn: 1, step: 1, time: 1_000, subCalls: [] })} />)
     expect(screen.getByText('1/1 已完成')).toBeTruthy()
   })
 
@@ -106,7 +107,7 @@ describe('TodoRow', () => {
 
   it('keeps non-ok execution states visible through the shared row states', () => {
     const args = JSON.stringify({ todos: LIST })
-    const running = render(<TodoRow {...rowProps({ callId: 'c1', name: 'todo_write', argsRaw: args, turn: 1, step: 1, time: 1_000, callView: null, subCalls: [] })} />)
+    const running = render(<TodoRow {...rowProps({ callId: 'c1', name: 'todo_write', argsRaw: args, turn: 1, step: 1, time: 1_000, subCalls: [] })} />)
     expect(running.container.querySelector('[data-state="running"]')).not.toBeNull()
     expect(running.container.querySelector('[data-state="running"] svg')).not.toBeNull()
     running.unmount()
@@ -114,19 +115,15 @@ describe('TodoRow', () => {
     expect(stopped.container.querySelector('[data-state="stopped"]')).not.toBeNull()
   })
 
-  it('falls back to the compact generic row on malformed args and keeps the full input expandable', () => {
+  it('falls back to the generic summary on malformed args and marks the error state', () => {
     const view = render(<TodoRow {...rowProps(resultNode('not json', { isError: true }))} />)
     expect(view.container.querySelector('[data-state="error"]')).not.toBeNull()
-    expect(screen.getByText('todo_write')).toBeTruthy()
-    expect(screen.queryByText('todo_write · not json')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { expanded: false }))
-    expect(screen.getByText('not json')).toBeTruthy()
+    expect(screen.getByText('todo_write · not json')).toBeTruthy()
   })
 
   it('falls back when parsed args carry no todos array', () => {
     render(<TodoRow {...rowProps(resultNode('{"other":1}'))} />)
-    expect(screen.getByText('todo_write')).toBeTruthy()
-    expect(screen.queryByText('todo_write · {"other":1}')).toBeNull()
+    expect(screen.getByText('todo_write · {"other":1}')).toBeTruthy()
   })
 
   it('leading toggle expands the raw args body', () => {
@@ -140,16 +137,14 @@ describe('TodoRow', () => {
     { label: 'null root', argsRaw: 'null' },
     { label: 'non-object root', argsRaw: '42' },
     { label: 'null items', argsRaw: '{"todos":[null]}' },
-  ])('falls back to the compact generic row on valid JSON with an invalid shape ($label)', ({ argsRaw }) => {
+  ])('falls back to the generic summary on valid JSON with an invalid shape ($label)', ({ argsRaw }) => {
     render(<TodoRow {...rowProps(resultNode(argsRaw))} />)
-    expect(screen.getByText('todo_write')).toBeTruthy()
-    expect(screen.queryByText(`todo_write · ${argsRaw}`)).toBeNull()
+    expect(screen.getByText(`todo_write · ${argsRaw}`)).toBeTruthy()
   })
 
-  it('window-truncated result keeps the wire name without exposing its call id', () => {
+  it('window-truncated result falls back to the callId summary', () => {
     render(<TodoRow {...rowProps(resultNode('', { call: null }))} />)
-    expect(screen.getByText('todo_write')).toBeTruthy()
-    expect(screen.queryByText(/c1/)).toBeNull()
+    expect(screen.getByText('todo_write · c1')).toBeTruthy()
   })
 
   it('injects the keyed toolview declaration directly', () => {
