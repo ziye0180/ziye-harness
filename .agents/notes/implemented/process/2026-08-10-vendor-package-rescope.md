@@ -28,15 +28,13 @@ The rewrite touches only **delimited, complete package-name tokens**: quoted or 
 
 Two classes are invisible to a token rule and were renamed site by site. First, property access — `manifest.peerDependencies?.cordis` — where TypeScript cannot catch a stale `Record<string, string>` key. Second, constants that carry the name as data: the vendored set in `check-workspace-constraints.ts`, the group/include names in `verify-cordis-config.ts`, the `declare module` target strings in `cordis-walk.ts`, `gen-scoped-events.ts`, and typert's `analyzer.ts`, and `alwaysBundle` in `app-boot/tsdown.config.ts`.
 
-Quoted product identifiers that resemble package subpaths are exempted by exact file and subpath token, not by whole file. The Inspector observation topic `cordis/tree` uses this rule, so a real `cordis` import in the same source still follows the package mapping.
-
 Markdown splits along what a reader does with it. Every fence follows the rename regardless of its info string, because a fence is code they copy or configuration they mount — the `yaml` fences naming Loader plugins and the `ts ignore-check` fences beside compiled ones included. Prose follows it under `docs/`, where a tutorial sentence quoting a name teaches something this repository no longer resolves. Prose elsewhere — `vendor/*/README.md`, package READMEs, and `.agents/notes/` — keeps the names it was written with, both because it records what was true then and because the same spelling can mean something else: the Python SDK's `cordis` option, the unvendored `@cordisjs/plugin-http`, or an agent-preset id.
 
 ## Consequences
 
 - No upstream name remains in the publication set. `publish-npm-baseline.ts` now requires every published package to be `@deepseek-ai/*` with no vendored exemption, so regressing the rename fails before packing.
 - The `vendor/README.md` manifest table gains an upstream-name column; `gen-third-party-notices` parses six columns and renders that name into `THIRD_PARTY_NOTICES.md`, keeping MIT attribution pointed at each fork's origin rather than our scope.
-- `pnpm-workspace.yaml` drops the `cordis` and `@cordisjs/plugin-loader` `minimumReleaseAgeExclude` entries, which can no longer be fetched from a registry, and `knip.json` drops the `@cordisjs/.+` ignore pattern that `@deepseek-ai/.+` already covers.
+- `pnpm-workspace.yaml` drops the `cordis` and `@cordisjs/plugin-loader` `minimumReleaseAgeExclude` entries, which can no longer be fetched from a registry.
 - Upstream sync follows the procedure in `vendor/README.md` with one added obligation in step 3: re-apply the rename over the copied sources with `pnpm run rescope-vendor --apply`, whose mapping and the table's two name columns must agree.
 - **Returning to the official upstream packages** means applying that mapping in reverse — `pnpm run rescope-vendor --apply --reverse` — then restoring the two `minimumReleaseAgeExclude` entries and relaxing the publication-set assertion. It spans roughly 1300 files, so replay it with the script rather than by hand.
 

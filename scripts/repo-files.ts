@@ -1,7 +1,7 @@
 /** Shared repository file discovery and line-oriented reference scanning. */
 
 import { globSync, readFileSync, realpathSync } from 'node:fs'
-import { matchesGlob, posix, relative, resolve, sep } from 'node:path'
+import { relative, resolve, sep } from 'node:path'
 
 /** One authored path plus its canonical target for symlink deduplication. */
 export interface RepoFile {
@@ -19,33 +19,6 @@ export interface ReferenceViolation {
   line: number
   /** Normalized reference text. */
   ref: string
-}
-
-/** One Node glob expansion plus its exact repository-path acceptance test. */
-interface RepoGlob {
-  readonly expansion: string
-  accepts(repoPath: string): boolean
-}
-
-const GLOB_MAGIC = /[*?[\]{}()!]/u
-
-/**
- * Plan one repository glob without letting a literal tail become a traversal target.
- * Node's glob walker can descend into a file symlink when a `**` pattern ends
- * in the same literal basename, then raises ENOTDIR on `<link>/<basename>`.
- */
-function repoGlob(pattern: string): RepoGlob {
-  const normalized = pattern.replaceAll('\\', '/')
-  const segments = normalized.split('/')
-  const tail = segments.at(-1)
-  if (!segments.includes('**') || tail === undefined || GLOB_MAGIC.test(tail)) {
-    return { expansion: normalized, accepts: () => true }
-  }
-  const directory = posix.dirname(normalized)
-  return {
-    expansion: directory === '.' ? '*' : `${directory}/*`,
-    accepts: repoPath => matchesGlob(repoPath, normalized),
-  }
 }
 
 /** Whether a repository path is frozen Agent Note history, not evolving source prose. */
@@ -68,10 +41,8 @@ export function uniqueRepoFiles(
   const seen = new Set<string>()
   const files: RepoFile[] = []
   for (const pattern of patterns) {
-    const planned = repoGlob(pattern)
-    for (const match of globSync(planned.expansion, { cwd: root })) {
+    for (const match of globSync(pattern, { cwd: root })) {
       const repoPath = match.split(sep).join('/')
-      if (!planned.accepts(repoPath)) continue
       if (isExcluded(repoPath)) continue
       const abs = resolve(root, repoPath)
       const real = realpathSync(abs)

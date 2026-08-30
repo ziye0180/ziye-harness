@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { checkedInExactEditState, exactEditState, rewriteRescopeLine } from './rescope-vendor.ts'
+import { exactEditState } from './rescope-vendor.ts'
 
 const ANCHOR = '\n## Sync procedure'
 const INSERTED = `\n15. **rescope**: one log entry.\n${ANCHOR}`
@@ -37,35 +37,5 @@ describe('exactEditState', () => {
     // A moved or partially applied site: neither state is complete.
     expect(exactEditState('a = 1\nb = 2\n', 'a = 1', 'b = 2', 1)).toBe('invalid')
     expect(exactEditState('x\n', 'a = 1', 'b = 2', 1)).toBe('invalid')
-  })
-})
-
-describe('checked-in rescope mapping', () => {
-  const movedSites = [
-    'agent-spine-demo-mounted-tree',
-    'agent-spine-demo-mounted-tree-zh',
-    'vendoring-cookbook-tree-comment',
-    'vendoring-cookbook-tree-comment-zh',
-    'vendoring-cookbook-name-invariant',
-    'vendoring-cookbook-name-invariant-zh',
-  ] as const
-
-  it.each(movedSites)('recognizes %s as fully applied', (id) => {
-    expect(checkedInExactEditState(id)).toBe('applied')
-  })
-})
-
-describe('product token exclusions', () => {
-  const inspectorSpec = 'packages/experimental/inspector/tests/cordis-tree.host.spec.ts'
-  const upstreamFramework = ['cor', 'dis'].join('')
-  const inspectorTopic = `${upstreamFramework}/tree`
-
-  it('keeps the Inspector topic without exempting framework imports in the same file', () => {
-    expect(rewriteRescopeLine(`const topic = '${inspectorTopic}'`, inspectorSpec))
-      .toBe(`const topic = '${inspectorTopic}'`)
-    expect(rewriteRescopeLine(`import { Context } from '${upstreamFramework}'`, inspectorSpec))
-      .toBe("import { Context } from '@deepseek-ai/cordis'")
-    expect(rewriteRescopeLine("import { Context } from '@deepseek-ai/cordis'", inspectorSpec, true))
-      .toBe(`import { Context } from '${upstreamFramework}'`)
   })
 })

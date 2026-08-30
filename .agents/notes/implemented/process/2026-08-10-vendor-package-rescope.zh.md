@@ -28,15 +28,13 @@ Status: implemented
 
 Token 规则看不见两类点位，它们按名字逐处改：一是属性访问 `manifest.peerDependencies?.cordis`——TypeScript 抓不到过期的 `Record<string, string>` 键；二是把名字当数据的常量（`check-workspace-constraints.ts` 的 vendored 集合、`verify-cordis-config.ts` 的 group/include 名、`cordis-walk.ts` 与 `gen-scoped-events.ts` 与 typert `analyzer.ts` 里识别 `declare module` 目标的字符串、`app-boot/tsdown.config.ts` 的 `alwaysBundle`）。
 
-形似包子路径的引号产品标识按精确文件与子路径 token 豁免，不按整文件豁免。Inspector 的观察 topic `cordis/tree` 使用这条规则，因此同一源码里的真实 `cordis` import 仍会跟随包名映射。
-
 Markdown 按「读者拿它做什么」一分为二。围栏一律跟着改，不看 info string——围栏里是读者要照抄的代码或要挂载的配置，包括写着 Loader 插件名的 `yaml` 围栏和紧邻编译围栏的 `ts ignore-check` 围栏。散文只在 `docs/` 下跟着改：教程里引用某个名字的句子，教的是本仓已不解析的东西。`docs/` 之外的散文——`vendor/*/README.md`、各包 README、`.agents/notes/`——保留写作当时的名字：既因为它记录的是当时的事实，也因为同一个拼写可能指别的东西，比如 Python SDK 的 `cordis` 选项、我们没 vendor 的 `@cordisjs/plugin-http`，或某个 agent-preset 的 id。
 
 ## 影响
 
 - 发布集里不再有任何上游名：`publish-npm-baseline.ts` 现在无条件要求每个待发包都是 `@deepseek-ai/*`，vendored 包不再豁免，改名一旦回退就会在打包前失败。
 - `vendor/README.md` 的清单表新增「上游名」列，`gen-third-party-notices` 随之解析六列并把上游名渲进 `THIRD_PARTY_NOTICES.md`；MIT 归属指向 fork 的来源，而不是我们的 scope。
-- `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude` 删去 `cordis` 与 `@cordisjs/plugin-loader` 两条：改名后这两个名字永远不从 registry 取。`knip.json` 的 `@cordisjs/.+` 忽略模式同理删除，已被 `@deepseek-ai/.+` 覆盖。
+- `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude` 删去 `cordis` 与 `@cordisjs/plugin-loader` 两条：改名后这两个名字永远不从 registry 取。
 - 上游 sync 照 `vendor/README.md` 的流程走，第 3 步多一项：对拷进来的源码重跑 `pnpm run rescope-vendor --apply`，脚本里的映射与清单表两列名字必须一致。
 - **要回到官方上游包**时反着跑这份映射——`pnpm run rescope-vendor --apply --reverse`——再补回 `minimumReleaseAgeExclude` 两条、放开发布集对 `@deepseek-ai/*` 的断言。改写量约 1300 个文件，用脚本重放而不是手改。
 
