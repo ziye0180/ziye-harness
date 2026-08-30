@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-30-inspector-console-lane-budget.md
+2026-08-30-inspector-console-lane-budget.md: c9d5854ffc68302cd01bc9c7293866046ffddd17
+2026-08-30-inspector-console-lane-budget.zh.md: 98aa6e63d382312cee18749f532122bdc5aff730

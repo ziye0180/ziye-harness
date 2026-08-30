@@ -375,12 +375,14 @@ describe('experimental Inspector real Worker', () => {
     await client.log(value, marker)
     let firstEvent: CdpMessage | undefined
     let secondEvent: CdpMessage | undefined
+    // Console delivery crosses Worker and WebSocket queues, so observe both
+    // isolated sessions with the unit lane's load-tolerant budget.
     await vi.waitFor(() => {
       firstEvent = consoleEvent(cdp!, firstContext, marker)
       secondEvent = consoleEvent(secondCdp!, secondContext, marker)
       expect(firstEvent).toBeDefined()
       expect(secondEvent).toBeDefined()
-    })
+    }, { timeout: 10_000, interval: 20 })
     const firstObjectId = asRecord(recordArray(firstEvent!.params?.args)[0]).objectId
     const secondObjectId = asRecord(recordArray(secondEvent!.params?.args)[0]).objectId
     expect(firstObjectId).toBeTypeOf('string')
