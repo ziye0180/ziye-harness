@@ -145,6 +145,10 @@ class Hmr extends Service {
       depth,
       ignored: undefined,
       ignoreInitial: false,
+      // Native backends can lose the parent-creation edge before attaching to
+      // a newly created missing-parent chain. Poll only that recovery case;
+      // existing-parent exact watches retain the configured backend.
+      usePolling: depth > 0 ? true : this.config.usePolling,
     })
     const registration = { watcher }
     this.configs.set(watchFilename, registration)
